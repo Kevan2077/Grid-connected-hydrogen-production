@@ -1,0 +1,5 @@
+# Three kinds of colors of files when adopting in Git:
+White: the files have been committed
+Blue: the files are found that have changes
+Green: the files are still not committed
+Sorrel:the files are still not added in version control
