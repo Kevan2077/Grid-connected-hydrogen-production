@@ -46,7 +46,7 @@ def Mean_carbon_intensity(year, location,step):
 
     df = result[result['Region'] == location]
 
-    # Data cleaning
+    # Functions cleaning
     df['TimeEnding'] = pd.to_datetime(df['TimeEnding'],format="%d/%m/%Y %H:%M", errors='coerce')
     df.set_index('TimeEnding', inplace=True)
 
@@ -85,7 +85,7 @@ def carbon_intensity(year, location,step):
 
     df = result[result['Region'] == location]
 
-    # Data cleaning
+    # Functions cleaning
     df['Time'] = pd.to_datetime(df['Time'],format="%d/%m/%Y %H:%M", errors='coerce')
 
     df.set_index('Time', inplace=True)

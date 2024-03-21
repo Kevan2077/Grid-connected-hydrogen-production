@@ -5,7 +5,7 @@ from pyomo.environ import *
 import warnings
 import pandas as pd
 import numpy as np
-from Data.Data import Spotprice, carbon_intensity, Mean_carbon_intensity, divide
+from Functions.Data import Spotprice, carbon_intensity, Mean_carbon_intensity, divide
 import os
 import seaborn as sns
 warnings.filterwarnings("ignore")
@@ -449,15 +449,15 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
         production_amount = sum(df['Load'])
         # location-based carbon emission calculation method:  (kg CO2e/kWh)
         if location == 'QLD1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.73)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.73)) / production_amount
         if location == 'NSW1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.68)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.68)) / production_amount
         if location == 'TAS1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.12)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.12)) / production_amount
         if location == 'VIC1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.79)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.79)) / production_amount
         if location == 'SA1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.25)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.25)) / production_amount
         # save key indicators:
         purchase_amount = sum(df['grid_pout'])
         sell_amount = sum(df['grid_pin'])
@@ -491,7 +491,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
 
         print("EI_MEF:", sum(df['CO2']) / value(m.production_amount))
         print("EI_Mean:", sum(df['Mean_CO2']) / value(m.production_amount))
-        print("EI_L:", CI_location_based_method)
+        print("EI_L:", EI_location_based_method)
         print("EI_GCO:", market_based_emission)
         print("Grid_connection_fee", value(m.grid_connection_fee))
         print("H2_initial_storage_level:", value(m.initial_h2_storage_value),
@@ -509,7 +509,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
             'EI_GCO': market_based_emission,
             'EI_MEF': MEF_carbon_emissions,
             'EI_MeanEI': MeanEI_carbon_emissions,
-            'EI_L': CI_location_based_method,
+            'EI_L': EI_location_based_method,
             'Sell_amount': sell_amount,
             'Purchase_amount': purchase_amount,
             'Curtailment': curtail,
@@ -541,5 +541,10 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
 
 #Test the model
 df=pd.DataFrame()
-operation_result,key_indicators=ECHO(year=2021,location='QLD1',step=60,grid=1,max_power_ratio=0.1,sell_ratio=-1,num_interval=0,ratio=0,SO_k=0,batch_interval=720)
-df=pd.concat([df, key_indicators], ignore_index=True)
+
+for i in [1,24,720,8760]:
+    operation_result,key_indicators=ECHO(year=2021,location='QLD1',step=60,grid=1,max_power_ratio=0.1,sell_ratio=-1,num_interval=0,ratio=0,SO_k=0,batch_interval=i)
+    operation_result.to_csv(f'batch {i}.csv')
+    df=pd.concat([df, key_indicators], ignore_index=True)
+
+
