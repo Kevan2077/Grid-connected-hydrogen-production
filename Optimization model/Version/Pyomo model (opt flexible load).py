@@ -90,27 +90,27 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
     m.pv_capacity = Var(domain=NonNegativeReals)
     m.wind_capacity = Var(domain=NonNegativeReals)
     m.h2_storage_capacity = Var(domain=NonNegativeReals)
-    m.electrolyser_max_input = Var(domain=NonNegativeReals)
+    m.electrolyser_capacity = Var(domain=NonNegativeReals)
 
     # Fixed capacity
     if location == 'QLD1':
         print('Location: QLD')
-        # m.pv_capacity=Param(initialize=12082*ratio)
-        # m.wind_capacity=Param(initialize=16519*ratio)
+        #m.pv_capacity=Param(initialize=12082*ratio)
+        #m.wind_capacity=Param(initialize=16519*ratio)
         # m.h2_storage_capacity = Param(initialize=80598)
-        # m.electrolyser_max_input = Param(initialize=14603)         #175kw
+        #m.electrolyser_capacity = Param(initialize=14603)         #175kw
     if location == 'TAS1':
         print('Location: TAS')
         m.pv_capacity = Param(initialize=0 * ratio)
         m.wind_capacity = Param(initialize=2010540 * ratio)
         # m.h2_storage_capacity = Param(initialize=10003211*ratio)
-        m.electrolyser_max_input = Param(initialize=1777318 * ratio)
+        m.electrolyser_capacity = Param(initialize=1777318 * ratio)
     if location == 'SA1':
         print('Location: SA')
         m.pv_capacity = Param(initialize=0 * ratio)
         m.wind_capacity = Param(initialize=2230317 * ratio)
         # m.h2_storage_capacity = Param(initialize=10003211)
-        m.electrolyser_max_input = Param(initialize=1971600)  # 175kw
+        m.electrolyser_capacity = Param(initialize=1971600)  # 175kw
 
     # m.max_power_export =Param(initialize=175e3)
     # Transmission cost may varied according to the scale
@@ -118,7 +118,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
         print("On-Grid")
         m.max_power_export = Var(domain=NonNegativeReals)
         # Maximum power exchange between the grid and hydrogen production system
-        m.con_max_power_export = Constraint(expr=m.max_power_export == max_power_ratio * m.electrolyser_max_input)
+        m.con_max_power_export = Constraint(expr=m.max_power_export == max_power_ratio * m.electrolyser_capacity)
     else:
         print("Off-Grid")
         m.max_power_export = Param(initialize=0)
@@ -179,10 +179,10 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
         print("Simultaneity_obligation is off")
 
     # grid_connection_fee is related to the scale     155 unit USD/kW
-    m.con_grid_connection_fee = Constraint(expr=m.max_power_export * 155 == m.grid_connection_fee)
+    m.con_grid_connection_fee = Constraint(expr=m.max_power_export * 0 == m.grid_connection_fee)
 
     def constraint_rule_el_pin(m, i):
-        return m.el_pin[i] <= m.electrolyser_max_input * step / 60
+        return m.el_pin[i] <= m.electrolyser_capacity * step / 60
 
     m.con_el_pin = Constraint(m.time_periods, rule=constraint_rule_el_pin)
 
@@ -205,9 +205,9 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
     # m.con_production_amount=Constraint(expr=m.production_amount==18000*num_simulation-m.initial_h2_storage_value)
 
     m.con_cost = Constraint(expr=m.grid_cost == sum(
-        -m.grid_pout[i] * (m.price[i] + 0.01) - (m.grid_pin[i] * (m.price[i] - 0.041)) for i in m.time_periods))
+        -m.grid_pout[i] * (m.price[i] + 0.01) - (m.grid_pin[i] * (m.price[i] - 0.1)) for i in m.time_periods))
 
-    # 0.034 means the integration cost of equipment which can help newly installed renewable energy reliable
+    # 0.034~0.041 means the integration cost of equipment which can help newly installed renewable energy reliable
     def constraint_rule_CO2(m, i):
         return m.CO2[i] == -(m.grid_pout[i] + m.grid_pin[i]) * m.carbon_intensity[i]  # According to Energy interaction
 
@@ -344,7 +344,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
     # LCOH and capex
     m.con_capex = Constraint(expr=m.capex == m.c_pv * m.pv_capacity +
                                   m.c_wind * m.wind_capacity +
-                                  m.c_el * m.electrolyser_max_input +
+                                  m.c_el * m.electrolyser_capacity +
                                   m.c_hydrogen_storage * m.h2_storage_capacity
                                   + m.grid_connection_fee)
 
@@ -354,7 +354,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
     def LCOH_constraint(m, i):
         return m.LCOH == (
             (
-                        m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_max_input * m.el_FOM + m.grid_cost / 1.49))
+                        m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity * m.el_FOM + m.grid_cost / 1.49))
         # /m.production_amount
         # + m.el_VOM)
 
@@ -478,10 +478,10 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
         h2_initial_storage_level = value(m.initial_h2_storage_value)
         wind_capacity = value(m.wind_capacity)
         pv_capacity = value(m.pv_capacity)
-        electrolyser_capacity = value(m.electrolyser_max_input)
+        electrolyser_capacity = value(m.electrolyser_capacity)
         hydrogen_storage_capacity = value(m.h2_storage_capacity)
         max_power_export = value(m.max_power_export)
-        Full_load_hours = sum(df['el_pin']) / value(m.electrolyser_max_input)
+        Full_load_hours = sum(df['el_pin']) / value(m.electrolyser_capacity)
         print("Simultaneity_obligation_interval:", num_interval)
         print("LCOH:", LCOH)
         print("Capex:", capex)
@@ -527,7 +527,7 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
             'Simultaneity_obligation': SO_k,
             'Batch_interval': batch_interval,
             'Supply_ratio': sell_ratio,
-            'Maximum_power_integration': max_power_ratio
+            'Maximum_power_integration': max_power_ratio,
         }
 
         # Create a DataFrame
@@ -542,9 +542,8 @@ def ECHO(year, location, step, grid, max_power_ratio,sell_ratio, num_interval, r
 #Test the model
 df=pd.DataFrame()
 
-for i in [1,24,720,8760]:
-    operation_result,key_indicators=ECHO(year=2021,location='QLD1',step=60,grid=1,max_power_ratio=0.1,sell_ratio=-1,num_interval=0,ratio=0,SO_k=0,batch_interval=i)
-    operation_result.to_csv(f'batch {i}.csv')
+for i in np.arange(0,1.6,0.1):
+    operation_result,key_indicators=ECHO(year=2021,location='QLD1',step=60,grid=1,max_power_ratio=i,sell_ratio=-1,num_interval=8759,ratio=0,SO_k=1,batch_interval=24)
     df=pd.concat([df, key_indicators], ignore_index=True)
-
+df.to_csv('test.csv')
 
