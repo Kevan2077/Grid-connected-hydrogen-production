@@ -545,5 +545,5 @@ df=pd.DataFrame()
 for i in np.arange(0,1.6,0.1):
     operation_result,key_indicators=ECHO(year=2021,location='QLD1',step=60,grid=1,max_power_ratio=i,sell_ratio=-1,num_interval=8759,ratio=0,SO_k=1,batch_interval=24)
     df=pd.concat([df, key_indicators], ignore_index=True)
-df.to_csv('test.csv')
+df.to_csv('different supply periods in five regions.csv')
 
