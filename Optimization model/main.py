@@ -13,22 +13,41 @@ pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 '''Parameter input'''
-Location='QLD1'
+#Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
 Grid=1
 Step=60
 Num_interval=0
-Ratio=0
+Ratio=1
 SO=0
-Batch_interval=1
+Batch_interval=24
 
 df=pd.DataFrame()
-operation_result,key_indicators=optimiser(year=Year, location=Location,
+
+for L in ['QLD1']:
+    Location=L
+    for i in np.arange(0,0.03,0.005):
+        cost=i
+        operation_result,key_indicators=optimiser(year=Year, location=Location,
                                           grid=Grid, step=Step,
                                           num_interval=Num_interval,ratio=Ratio,
-                                          SO=SO, batch_interval=Batch_interval)
-#path=f'D:\\Do it\\Phd\\Pycharm project\\Grid-connected hydrogen\\Local factory\\Resultset\\{j} Opt.csv'
-#operation_result.to_csv(path)
-df=pd.concat([df, key_indicators], ignore_index=True)
+                                          SO=SO, batch_interval=Batch_interval,cost=cost)
+
+        df=pd.concat([df, key_indicators], ignore_index=True)
+
+print(df)
+#df.to_csv('test.csv')
+
+
+
+
+
+
+
+
+
+
+
+
 
 

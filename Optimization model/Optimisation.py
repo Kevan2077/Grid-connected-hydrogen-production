@@ -20,9 +20,10 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     data=Spotprice(year,location,step)
     '''MEF'''
     data['Carbon intensity']=carbon_intensity(year,location,step)['Intensity_Index']
-    '''AEF'''
-    data['Mean Carbon intensity']=Mean_carbon_intensity(year,location,step)['Intensity_Index']
 
+    '''AEF'''
+    #data['Mean Carbon intensity']=Mean_carbon_intensity(year,location,step)['Intensity_Index']
+    data['Mean Carbon intensity'] = source_df['AEF']
     '''
     When we adopt different time resolution, we can change 'step': 15,30,60 (default) 
     '''
@@ -85,6 +86,13 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
 
     '''Variable definition'''
 
+    #Indicators:
+    m.grid_interaction_cost=Var()
+    m.capex=Var()
+    m.LCOH=Var()
+    m.production_amount=Var()
+
+
     #load and total production amount
     m.Load=Var(m.time_periods, domain=NonNegativeReals)
 
@@ -112,45 +120,61 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
+    #input the off-grid optimized results:
+    #path = r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Resultset\off-grid results for five regions.csv'
+    path=r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Optimization model\QLD.csv'
+    off_grid_result = pd.read_csv(path)
+    Opt_QLD = off_grid_result[off_grid_result['Location'] == 'QLD1'].reset_index(drop=True)
+    Opt_TAS = off_grid_result[off_grid_result['Location'] == 'TAS1'].reset_index(drop=True)
+    Opt_SA = off_grid_result[off_grid_result['Location'] == 'SA1'].reset_index(drop=True)
+    Opt_VIC = off_grid_result[off_grid_result['Location'] == 'VIC1'].reset_index(drop=True)
+    Opt_NSW = off_grid_result[off_grid_result['Location'] == 'NSW1'].reset_index(drop=True)
     if location=='QLD1':
         print('Location: QLD')
-        #m.pv_capacity=Param(initialize=12082*ratio)
-        #m.wind_capacity=Param(initialize=16519*ratio)
-        #m.h2_storage_capacity = Param(initialize=80598)
-        #m.electrolyser_capacity = Param(initialize=14603)         #175kw
-        m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
+        #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
+        #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
+        #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
+        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
+        #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
-        #m.pv_capacity=Param(initialize=0*ratio)
-        #m.wind_capacity=Param(initialize=16290*ratio)
-        #m.h2_storage_capacity = Param(initialize=62046)
-        #m.electrolyser_capacity = Param(initialize=14400)
-        m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
+        #m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
+        #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
+        #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
+        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
+        #m.con_grid_connection_fee = Constraint(expr=m.maximum_power_integration * 0 == m.grid_connection_fee)
 
     if location=='SA1':
         print('Location: SA')
-        #m.pv_capacity=Param(initialize=0*ratio)
-        #m.wind_capacity=Param(initialize=18070*ratio)
-        #m.h2_storage_capacity = Param(initialize=53107)
-       # m.electrolyser_capacity = Param(initialize=15974)        #175kw
-        m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
+        #m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
+        #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
+        #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
+        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
+        #m.con_grid_connection_fee = Constraint(expr=m.maximum_power_integration * 0 == m.grid_connection_fee)
 
     if location=='VIC1':
         print('Location: VIC')
-        #m.pv_capacity=Param(initialize=0*ratio)
-        #m.wind_capacity=Param(initialize=15481*ratio)
-        #m.h2_storage_capacity = Param(initialize=76440)
-        #m.electrolyser_capacity = Param(initialize=13001)
-        m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
+        #m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
+        #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
+        #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
+        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
+        #m.con_grid_connection_fee = Constraint(expr=m.maximum_power_integration * 0 == m.grid_connection_fee)
 
     if location=='NSW1':
         print('Location: NSW')
-        #m.pv_capacity=Param(initialize=0*ratio)
-        #m.wind_capacity=Param(initialize=19834*ratio)
-        #m.h2_storage_capacity = Param(initialize=66122)
-        #m.electrolyser_capacity = Param(initialize=14775)
-        m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
+
+        #m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
+        #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
+        #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
+        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
+        #m.con_grid_connection_fee = Constraint(expr=m.maximum_power_integration * 0 == m.grid_connection_fee)
 
 
     '''Flow variables'''
@@ -195,13 +219,6 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     m.h2_storage_pout = Var(m.time_periods, domain=NonPositiveReals)    #out
     m.h2_storage_level = Var(m.interval, domain=NonNegativeReals)
     m.initial_h2_storage_value = Var(domain=NonNegativeReals)
-
-    #Indicators:
-    m.grid_interaction_cost=Var()
-    m.capex=Var()
-    m.LCOH=Var()
-    m.production_amount=Var()
-
 
     '''Constraints'''
 
@@ -294,8 +311,6 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         num_interval=0
         print("Simultaneity_obligation is off")
 
-
-
     '''Electrolyser node'''
     def constraint_rule_el(m, i):      #this indicates the power balance in different time steps for example if step is 15min the power consumed is 1/4 kWh
         return  m.el_pin[i]+m.el_pout[i]*(39.4/0.7)==0
@@ -363,7 +378,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
 
     '''Indicators'''
     #Grid interaction cost
-    m.con_cost=Constraint(expr=m.grid_interaction_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i]-0.034)) for i in m.time_periods))
+    m.con_cost=Constraint(expr=m.grid_interaction_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i]-0.041)) for i in m.time_periods))
     #0.034 means the integration cost of equipment which can help newly installed renewable energy reliable
     #0.01 is TUOS
 
@@ -376,7 +391,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         return  m.AEF_CO2[i]==-(m.grid_pout[i]+m.grid_pin[i])*m.AEF[i]
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
-    #Carbon Emission Requirement
+    #Carbon Emission EI_GCO Requirement
     #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
 
     # LCOH and capex
@@ -385,9 +400,6 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
                       m.c_el*m.electrolyser_capacity+
                       m.c_hydrogen_storage*m.h2_storage_capacity
                       +m.grid_connection_fee)
-
-    #Carbon Emission Requirement
-    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
 
     def LCOH_constraint(m,i):
         return m.LCOH == (
@@ -406,9 +418,6 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
     solver.options['FeasibilityTol'] = 1e-9
     results = solver.solve(m)
-
-
-
 
 
 
