@@ -14,7 +14,8 @@ warnings.filterwarnings("ignore")
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval, hydrogen_storage_cost,comp2_conversion):
     #data import
-    file_path=r'D:\Do it\Phd\ECHO\ECHO\Dataframe '+str(location)+'.csv'
+    file_name='Dataset\\'+'Dataframe '+str(location)+'.csv'
+    file_path = r'{}'.format(os.path.abspath(file_name))
     source_df=pd.read_csv(file_path, index_col=0)
     '''Electricity Price'''
     data=Spotprice(year,location,step)
@@ -124,6 +125,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
 
     #Fixed capacity
     #input the off-grid optimized results:
+    '''
     path = r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Resultset\off-grid results for five regions.csv'
 
     off_grid_result = pd.read_csv(path)
@@ -132,6 +134,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     Opt_SA = off_grid_result[off_grid_result['Location'] == 'SA1'].reset_index(drop=True)
     Opt_VIC = off_grid_result[off_grid_result['Location'] == 'VIC1'].reset_index(drop=True)
     Opt_NSW = off_grid_result[off_grid_result['Location'] == 'NSW1'].reset_index(drop=True)
+    '''
     if location=='QLD1':
         print('Location: QLD')
         #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
@@ -383,7 +386,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
 
     '''Indicators'''
     #Grid interaction cost
-    m.con_cost=Constraint(expr=m.grid_interaction_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i]-0.041)) for i in m.time_periods))
+    m.con_cost=Constraint(expr=m.grid_interaction_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i])) for i in m.time_periods))
     #0.034 means the integration cost of equipment which can help newly installed renewable energy reliable
     #0.01 is TUOS
 
@@ -629,7 +632,7 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval):
                     break  # Break out of the loop when the condition is met
                 initial_ug_capa = new_ug_capa
                 print('Refining storage cost; new storage capa=', initial_ug_capa)
-                operation_result, data2 =  optimiser(year=Year,
+                operation_result, key_indicators =  optimiser(year=Year,
                                        location=Location,
                                        grid=Grid,
                                        step=Step,
@@ -640,11 +643,11 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval):
                                            initial_ug_capa),
                                        comp2_conversion=Comp2_conversion(
                                            initial_ug_capa))
-                print(data2)
-                capa = data2['hydrogen_storage_capacity']
+                print(key_indicators)
+                capa = key_indicators['hydrogen_storage_capacity']
                 capa = float(capa)
                 new_ug_capa = capa / 1e3
-        df = pd.concat([df, data2], ignore_index=True)
+        df = pd.concat([df, key_indicators], ignore_index=True)
         print(df)
         return df, operation_result
     else:

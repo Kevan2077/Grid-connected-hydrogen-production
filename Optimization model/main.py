@@ -24,16 +24,16 @@ SO=0
 Batch_interval=1
 
 df = pd.DataFrame()
-for y in [2021,2023]:
+for y in [2021]:
     Year=y
     for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
-        for i in [1,24,720,8760]:
+        for i in [24]:
             Batch_interval=i
             key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,Num_interval=Num_interval,Ratio=Ratio,SO=SO,Batch_interval=Batch_interval)
             df = pd.concat([df, key_indicators], ignore_index=True)
 
-df.to_csv('test.csv')
+df.to_csv('off-grid result.csv')
 
 
 
