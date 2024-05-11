@@ -12,9 +12,10 @@ pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
-def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval):
+def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval):
     #data import
-    file_path=r'D:\Do it\Phd\ECHO\ECHO\Dataframe '+str(location)+'.csv'
+    file_name='Dataset\\'+'Dataframe '+str(location)+'.csv'
+    file_path = r'{}'.format(os.path.abspath(file_name))
     source_df=pd.read_csv(file_path, index_col=0)
     '''Electricity Price'''
     data=Spotprice(year,location,step)
@@ -122,6 +123,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     #Fixed capacity
     #input the off-grid optimized results:
     #path = r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Resultset\off-grid results for five regions.csv'
+    '''
     path=r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Optimization model\QLD.csv'
     off_grid_result = pd.read_csv(path)
     Opt_QLD = off_grid_result[off_grid_result['Location'] == 'QLD1'].reset_index(drop=True)
@@ -129,6 +131,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     Opt_SA = off_grid_result[off_grid_result['Location'] == 'SA1'].reset_index(drop=True)
     Opt_VIC = off_grid_result[off_grid_result['Location'] == 'VIC1'].reset_index(drop=True)
     Opt_NSW = off_grid_result[off_grid_result['Location'] == 'NSW1'].reset_index(drop=True)
+    '''
     if location=='QLD1':
         print('Location: QLD')
         #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)

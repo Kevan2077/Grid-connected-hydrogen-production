@@ -31,12 +31,14 @@ for L in ['QLD1']:
         operation_result,key_indicators=optimiser(year=Year, location=Location,
                                           grid=Grid, step=Step,
                                           num_interval=Num_interval,ratio=Ratio,
-                                          SO=SO, batch_interval=Batch_interval,cost=cost)
+                                          SO=SO, batch_interval=Batch_interval)
 
         df=pd.concat([df, key_indicators], ignore_index=True)
 
 print(df)
 #df.to_csv('test.csv')
+
+
 
 
 
