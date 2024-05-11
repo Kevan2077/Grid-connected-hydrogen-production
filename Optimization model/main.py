@@ -8,35 +8,35 @@ import numpy as np
 from Functions.Data import *
 import os
 import seaborn as sns
+from Functions.Data import *
 from Optimisation import *
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 '''Parameter input'''
-#Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
+Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=1
+Grid=0
 Step=60
 Num_interval=0
-Ratio=1
+Ratio=0
 SO=0
-Batch_interval=24
+Batch_interval=1
 
-df=pd.DataFrame()
+df = pd.DataFrame()
+for y in [2021,2023]:
+    Year=y
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+        Location = L
+        for i in [1,24,720,8760]:
+            Batch_interval=i
+            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,Num_interval=Num_interval,Ratio=Ratio,SO=SO,Batch_interval=Batch_interval)
+            df = pd.concat([df, key_indicators], ignore_index=True)
 
-for L in ['QLD1']:
-    Location=L
-    for i in np.arange(0,0.03,0.005):
-        cost=i
-        operation_result,key_indicators=optimiser(year=Year, location=Location,
-                                          grid=Grid, step=Step,
-                                          num_interval=Num_interval,ratio=Ratio,
-                                          SO=SO, batch_interval=Batch_interval)
+df.to_csv('test.csv')
 
-        df=pd.concat([df, key_indicators], ignore_index=True)
 
-print(df)
-#df.to_csv('test.csv')
+
 
 
 

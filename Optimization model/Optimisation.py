@@ -12,10 +12,9 @@ pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
-def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval):
+def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval, hydrogen_storage_cost,comp2_conversion):
     #data import
-    file_name='Dataset\\'+'Dataframe '+str(location)+'.csv'
-    file_path = r'{}'.format(os.path.abspath(file_name))
+    file_path=r'D:\Do it\Phd\ECHO\ECHO\Dataframe '+str(location)+'.csv'
     source_df=pd.read_csv(file_path, index_col=0)
     '''Electricity Price'''
     data=Spotprice(year,location,step)
@@ -51,6 +50,7 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
     #larger batch size needs to meet larger hydrogen demand
     m.supply_periods=RangeSet(0,num_simulation-1,batch_interval)
     number_of_supply = len(m.supply_periods)
+    print('Batch interval:', batch_interval)
 
     # Set the time period of each calendar month
     supply_periods = [0, 24 * 31, 24 * 28, 24 * 31, 24 * 30, 24 * 31, 24 * 30, 24 * 31, 24 * 31, 24 * 30, 24 * 31,
@@ -61,13 +61,12 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
     m.c_pv = Param(initialize=1122.7)               #CAPEX of pv
     m.c_wind = Param(initialize=1455)               #CAPEX of wind
     m.c_el = Param(initialize=1067)                 #CAPEX of electrolyser
-    m.c_hydrogen_storage = Param(initialize=17.66)  #CAPEX of hydrogen underground storage (salt cavern)
+    m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)       #CAPEX of hydrogen underground storage (salt cavern) 17.66
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=12.7)
     m.wind_FOM = Param(initialize=18.65)
     m.el_FOM = Param(initialize=37.4)
     m.el_VOM = Param(initialize=0.075)   #water
-
 
     ''' renewable generation '''
     m.pv_ref_size = Param(initialize=1000)
@@ -76,6 +75,9 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
                                 initialize={i: float(source_df.loc[i, 'Solar']) for i in m.time_periods})
     m.wind_ref_generation = Param(m.time_periods,
                                 initialize={i: float(source_df.loc[i, 'Wind']) for i in m.time_periods})
+
+    ''' Electricity consumption of compression'''
+    m.comp2_power_conversion=Param(initialize=comp2_conversion)
 
     ''' price and carbon intensity '''
     m.price = Param(m.time_periods, initialize={i: float(source_df.loc[i, 'Prices']) for i in m.time_periods})
@@ -122,16 +124,14 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
 
     #Fixed capacity
     #input the off-grid optimized results:
-    #path = r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Resultset\off-grid results for five regions.csv'
-    '''
-    path=r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Optimization model\QLD.csv'
+    path = r'D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Resultset\off-grid results for five regions.csv'
+
     off_grid_result = pd.read_csv(path)
     Opt_QLD = off_grid_result[off_grid_result['Location'] == 'QLD1'].reset_index(drop=True)
     Opt_TAS = off_grid_result[off_grid_result['Location'] == 'TAS1'].reset_index(drop=True)
     Opt_SA = off_grid_result[off_grid_result['Location'] == 'SA1'].reset_index(drop=True)
     Opt_VIC = off_grid_result[off_grid_result['Location'] == 'VIC1'].reset_index(drop=True)
     Opt_NSW = off_grid_result[off_grid_result['Location'] == 'NSW1'].reset_index(drop=True)
-    '''
     if location=='QLD1':
         print('Location: QLD')
         #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
@@ -198,6 +198,8 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
 
     #Compressor node:
     m.comp_pin=Var(m.time_periods, domain=NonNegativeReals)
+
+
 
     #Grid node:
     m.grid_pout= Var(m.time_periods, domain=NonPositiveReals)
@@ -270,7 +272,7 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
 
     '''Compressor'''
     def constraint_rule_comp(m, i):
-        return  m.comp_pin[i]==0.41*m.h2_storage_pin[i]+0.83*(-m.el_pout[i])
+        return  m.comp_pin[i]== m.comp2_power_conversion*m.h2_storage_pin[i]+0.83*(-m.el_pout[i])
     m.con_comp = Constraint(m.time_periods, rule=constraint_rule_comp)
 
     '''Grid Node'''
@@ -370,7 +372,7 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
         m.load_constraint = Constraint(range(len(cumulative_supply)-1), rule=load_constraint_rule)
     else:
         def load_constraint_rule(m, i):
-            return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == 3500 * 365 / number_of_supply
+            return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == 4320 * 365 / number_of_supply
         m.load_constraint = Constraint(m.supply_periods, rule=load_constraint_rule)
 
     def constraint_rule_H2CP_H2demand(m, i):
@@ -394,8 +396,10 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
         return  m.AEF_CO2[i]==-(m.grid_pout[i]+m.grid_pin[i])*m.AEF[i]
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
-    #Carbon Emission EI_GCO Requirement
+    #Carbon Emission Requirement
     #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
+
 
     # LCOH and capex
     m.con_capex=Constraint(expr=m.capex==m.c_pv*m.pv_capacity+
@@ -552,7 +556,6 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
         print('Model running resolution:', step)
         print("Average_grid_interaction_cost:", value(m.grid_interaction_cost) / value(m.production_amount))
         print("production_amount:", sum(df['Load']))
-
         print("EI_MEF:", sum(df['MEF_CO2']) / value(m.production_amount))
         print("EI_AEF:", sum(df['AEF_CO2']) / value(m.production_amount))
         print("EI_L:", CI_location_based_method)
@@ -600,6 +603,53 @@ def optimiser(year, location,grid, step, num_interval,ratio, SO, batch_interval)
         print("Solver Status:", results.solver.status)
 
         return None, None
+
+def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval):
+    df = pd.DataFrame()
+    initial_ug_capa = 110
+    operation_result, key_indicators = optimiser(year=Year,
+                                                 location=Location,
+                                                 grid=Grid,
+                                                 step=Step,
+                                                 num_interval=Num_interval, ratio=Ratio,
+                                                 SO=SO,
+                                                 batch_interval=Batch_interval,
+                                                 hydrogen_storage_cost=Cost_hs(initial_ug_capa),
+                                                 comp2_conversion=Comp2_conversion(initial_ug_capa))
+
+    capa = key_indicators['hydrogen_storage_capacity']
+    capa = float(capa)
+
+    if capa > 0:
+        new_ug_capa = capa / 1e3
+        if np.mean([new_ug_capa, initial_ug_capa]) > 0:
+            while True:
+                relative_change = abs(new_ug_capa - initial_ug_capa) / np.mean([new_ug_capa, initial_ug_capa])
+                if relative_change <= 0.05:
+                    break  # Break out of the loop when the condition is met
+                initial_ug_capa = new_ug_capa
+                print('Refining storage cost; new storage capa=', initial_ug_capa)
+                operation_result, data2 =  optimiser(year=Year,
+                                       location=Location,
+                                       grid=Grid,
+                                       step=Step,
+                                       num_interval=Num_interval, ratio=Ratio,
+                                       SO=SO,
+                                       batch_interval=Batch_interval,
+                                       hydrogen_storage_cost=Cost_hs(
+                                           initial_ug_capa),
+                                       comp2_conversion=Comp2_conversion(
+                                           initial_ug_capa))
+                print(data2)
+                capa = data2['hydrogen_storage_capacity']
+                capa = float(capa)
+                new_ug_capa = capa / 1e3
+        df = pd.concat([df, data2], ignore_index=True)
+        print(df)
+        return df, operation_result
+    else:
+        print(key_indicators)
+        return key_indicators,operation_result
 
 
 

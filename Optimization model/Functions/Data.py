@@ -161,3 +161,30 @@ def Spotprice(year, location,step):
         prices = prices.iloc[:-3]
     
     return prices
+
+
+def Cost_hs(size):
+    if size > 0:
+        x = np.log10(size)
+        if size > 100:
+            print('storage_type is Salt Cavern')
+            cost = 10 ** (0.212669 * x ** 2 - 1.638654 * x + 4.403100)
+
+            if size > 8000:
+                cost = 17.66
+        else:
+            print('storage_type is Pipeline Storage')
+            # cost = 10 ** (-0.0285*x + 2.7853)
+            cost = 516
+
+    else:
+        cost = 516
+    return (cost)
+
+
+def Comp2_conversion(size):
+    if size > 100:
+        comp2_conversion = 0.41
+    else:
+        comp2_conversion = 0
+    return (comp2_conversion)
