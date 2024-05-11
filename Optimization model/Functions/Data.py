@@ -40,8 +40,9 @@ def divide(df,step):
     return new_data
 
 def Mean_carbon_intensity(year, location,step):
+    file_name='Dataset\\NEMED data\\Mean carbon intensity'
+    file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
-    file_path = os.path.join(r'D:\Do it\Phd\ECHO\ECHO\NEMED data\Mean carbon intensity', file_name)
     result = pd.read_csv(file_path, index_col=0)
 
     df = result[result['Region'] == location]
@@ -79,8 +80,11 @@ def Mean_carbon_intensity(year, location,step):
     return Carbon_Intensity
 
 def carbon_intensity(year, location,step):
+
+    file_name='Dataset\\NEMED data\\Carbon intensity'
+    file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
-    file_path = os.path.join(r'D:\Do it\Phd\ECHO\ECHO\NEMED data\Carbon intensity', file_name)
+    file_path = os.path.join(file_path, file_name)
     result = pd.read_csv(file_path, index_col=0)
 
     df = result[result['Region'] == location]
@@ -119,8 +123,10 @@ def carbon_intensity(year, location,step):
     return Carbon_Intensity
 
 def Spotprice(year, location,step):
+    file_name='Dataset\\NEMED data\\Price'
+    file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
-    file_path = os.path.join(r'D:\Do it\Phd\ECHO\ECHO\NEMED data\Price', file_name)
+    file_path = os.path.join(file_path, file_name)
     result = pd.read_csv(file_path, index_col=0)
     df = result[result['Region'] == location]
 
