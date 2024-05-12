@@ -11,8 +11,10 @@ import seaborn as sns
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
+
 ''' Initialize the optimisation model '''
-def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval, hydrogen_storage_cost,comp2_conversion):
+def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
+              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type):
     #data import
     file_name='Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -143,7 +145,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
-        m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
@@ -152,7 +154,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
-        m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
 
     if location=='SA1':
         print('Location: SA')
@@ -161,7 +163,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
-        m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
 
     if location=='VIC1':
         print('Location: VIC')
@@ -170,7 +172,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
-        m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
 
     if location=='NSW1':
         print('Location: NSW')
@@ -179,7 +181,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
-        m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
 
 
     '''Flow variables'''
@@ -361,6 +363,18 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
 
+    #Hydrogen storage type constraint:
+    if hydrogen_storage_type=='Pipeline':
+        print(hydrogen_storage_type)
+        def constraint_rule_H2storage_capacity_lower_bound(m, i):
+            return  m.h2_storage_capacity<100000
+        m.con_H2storage_capacity_lower_bound = Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity_lower_bound)
+    if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
+        print(hydrogen_storage_type)
+        def constraint_rule_H2storage_capacity_lower_bound(m, i):
+            return  m.h2_storage_capacity>=100000
+        m.con_H2storage_capacity_lower_bound = Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity_lower_bound)
+
     #Initial level=End level
     m.con_hydrogen_storage = Constraint(expr=m.h2_storage_level[end_index] == m.initial_h2_storage_value)
     '''Load node'''
@@ -419,9 +433,9 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
     solver = SolverFactory('gurobi')
     #solver = SolverFactory('ipopt')  # Use a nonlinear solver, e.g., IPOPT
 
-    solver.options['MIPFocus'] = 3
-    solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
-    solver.options['FeasibilityTol'] = 1e-9
+    #solver.options['MIPFocus'] = 3
+    #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
+    #solver.options['FeasibilityTol'] = 1e-9
     results = solver.solve(m)
 
 
@@ -602,52 +616,7 @@ def optimiser(year, location, grid, step, num_interval,ratio, SO, batch_interval
 
         return None, None
 
-def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval):
-    df = pd.DataFrame()
-    initial_ug_capa = 110
-    operation_result, key_indicators = optimiser(year=Year,
-                                                 location=Location,
-                                                 grid=Grid,
-                                                 step=Step,
-                                                 num_interval=Num_interval, ratio=Ratio,
-                                                 SO=SO,
-                                                 batch_interval=Batch_interval,
-                                                 hydrogen_storage_cost=Cost_hs(initial_ug_capa),
-                                                 comp2_conversion=Comp2_conversion(initial_ug_capa))
 
-    capa = key_indicators['hydrogen_storage_capacity']
-    capa = float(capa)
-
-    if capa > 0:
-        new_ug_capa = capa / 1e3
-        if np.mean([new_ug_capa, initial_ug_capa]) > 0:
-            while True:
-                relative_change = abs(new_ug_capa - initial_ug_capa) / np.mean([new_ug_capa, initial_ug_capa])
-                if relative_change <= 0.05:
-                    break  # Break out of the loop when the condition is met
-                initial_ug_capa = new_ug_capa
-                print('Refining storage cost; new storage capa=', initial_ug_capa)
-                operation_result, key_indicators =  optimiser(year=Year,
-                                       location=Location,
-                                       grid=Grid,
-                                       step=Step,
-                                       num_interval=Num_interval, ratio=Ratio,
-                                       SO=SO,
-                                       batch_interval=Batch_interval,
-                                       hydrogen_storage_cost=Cost_hs(
-                                           initial_ug_capa),
-                                       comp2_conversion=Comp2_conversion(
-                                           initial_ug_capa))
-                print(key_indicators)
-                capa = key_indicators['hydrogen_storage_capacity']
-                capa = float(capa)
-                new_ug_capa = capa / 1e3
-        df = pd.concat([df, key_indicators], ignore_index=True)
-        print(df)
-        return df, operation_result
-    else:
-        print(key_indicators)
-        return key_indicators,operation_result
 
 
 
