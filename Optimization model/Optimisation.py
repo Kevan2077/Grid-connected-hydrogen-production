@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow):
+              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow,capex_ratio):
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -157,7 +157,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex']*0.9)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex']*capex_ratio)
 
     if location=='TAS1':
         print('Location: TAS')
@@ -167,7 +167,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex']*0.9)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex']*capex_ratio)
 
     if location=='SA1':
         print('Location: SA')
@@ -177,7 +177,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex']*0.9)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex']*capex_ratio)
 
     if location=='VIC1':
         print('Location: VIC')
@@ -187,7 +187,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex']*0.9)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex']*capex_ratio)
 
     if location=='NSW1':
         print('Location: NSW')
@@ -197,7 +197,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
         if grid==1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex']*0.9)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex']*capex_ratio)
 
 
     '''Flow variables'''
@@ -423,7 +423,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)==0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
