@@ -13,7 +13,7 @@ from Optimisation import *
 #pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
-def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hydrogen_storage_type):
+def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hydrogen_storage_type,Hydrogen_load_flow):
     df = pd.DataFrame()
     initial_ug_capa = 0
     if Hydrogen_storage_type =='Salt Cavern' or Hydrogen_storage_type =='Lined Rock':
@@ -30,9 +30,15 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hy
                                                  hydrogen_storage_cost=Cost_hs(initial_ug_capa,
                                                                                Hydrogen_storage_type),
                                                  comp2_conversion=Comp2_conversion(initial_ug_capa),
-                                                 hydrogen_storage_type=Hydrogen_storage_type)
-    capa = key_indicators['hydrogen_storage_capacity']
-    capa = float(capa)
+                                                 hydrogen_storage_type=Hydrogen_storage_type,
+                                                 hydrogen_load_flow=Hydrogen_load_flow)
+    if key_indicators is not None:
+        capa = key_indicators['hydrogen_storage_capacity']
+        capa = float(capa)
+    if key_indicators is None:
+        print(f'Under the hydrogen storage type {Hydrogen_storage_type}')
+        print('No optimal solution found')
+        return None, None
 
     if capa > 0 and Hydrogen_storage_type !='Pipeline':        #We assume the capex of unit pipeline storage cost is fixed
         new_ug_capa = capa / 1e3
@@ -53,16 +59,11 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hy
                                                             Hydrogen_storage_type),
                                        comp2_conversion=Comp2_conversion(
                                            initial_ug_capa),
-                                        hydrogen_storage_type=Hydrogen_storage_type)
-                if key_indicators is None or key_indicators.empty:
-                    print('Pipeline storage is too expensive and make capex infeasible')
-                    print('Underground storage is built')
-                    new_ug_capa=110
-                    Hydrogen_storage_type='Salt Cavern'
-                else:
-                    capa = key_indicators['hydrogen_storage_capacity']
-                    capa = float(capa)
-                    new_ug_capa = capa / 1e3
+                                        hydrogen_storage_type=Hydrogen_storage_type,
+                                        hydrogen_load_flow=Hydrogen_load_flow)
+                capa = key_indicators['hydrogen_storage_capacity']
+                capa = float(capa)
+                new_ug_capa = capa / 1e3
         df = pd.concat([df, key_indicators], ignore_index=True)
         print(df)
         return df, operation_result
@@ -75,25 +76,27 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hy
 '''Parameter input'''
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=0
+Grid=1
 Step=60
 Num_interval=0
 Ratio=0
 SO=1
 Batch_interval=24
-Hydrogen_storage_type='Salt Cavern'              ##'Pipeline','Salt Cavern', 'Lined Rock'
+Hydrogen_storage_type='Lined Rock'              ##'Pipeline','Salt Cavern', 'Lined Rock'
+load=180
 
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+    for L in ['QLD1']:
         Location = L
-        for j in ['Pipeline','Salt Cavern', 'Lined Rock']:
+        for j in ['Pipeline','Lined Rock']:
             Hydrogen_storage_type=j
-            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,Num_interval=Num_interval,Ratio=Ratio,SO=SO,Batch_interval=Batch_interval,Hydrogen_storage_type=Hydrogen_storage_type)
+            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,Num_interval=Num_interval,Ratio=Ratio,SO=SO,Batch_interval=Batch_interval,Hydrogen_storage_type=Hydrogen_storage_type,Hydrogen_load_flow=load)
             df = pd.concat([df, key_indicators], ignore_index=True)
 
-df.to_csv('2023 off-grid result.csv')
+#df.to_csv('Result\\off-grid different supply periods.csv')
+df.to_csv('on-grid test.csv')
 print(df)
 
 

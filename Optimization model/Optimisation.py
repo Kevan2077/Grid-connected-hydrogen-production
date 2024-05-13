@@ -14,9 +14,9 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type):
+              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow):
     #data import
-    file_name='Dataset\\'+'Dataframe '+str(location)+'.csv'
+    file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     source_df=pd.read_csv(file_path, index_col=0)
     '''Electricity Price'''
@@ -75,8 +75,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.c_pv = Param(initialize=1068.2)  # CAPEX of pv
     m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
     m.c_el = Param(initialize=1343)  # CAPEX of electrolyser
-    m.c_hydrogen_storage = Param(
-        initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
+    m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=11.9)
     m.wind_FOM = Param(initialize=17.5)
@@ -139,7 +138,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #Fixed capacity
     #input the off-grid optimized results:
-    file_name='Dataset\\'+'off-grid result'+'.csv'
+    file_name='Result\\'+'off-grid test'+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
@@ -157,7 +156,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
+        if grid == 1:
+            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
@@ -166,7 +166,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
+        if grid == 1:
+            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
 
     if location=='SA1':
         print('Location: SA')
@@ -175,7 +176,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
+        if grid == 1:
+            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
 
     if location=='VIC1':
         print('Location: VIC')
@@ -184,7 +186,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
+        if grid == 1:
+            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
 
     if location=='NSW1':
         print('Location: NSW')
@@ -193,7 +196,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
         #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
+        if grid==1:
+            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
 
 
     '''Flow variables'''
@@ -378,9 +382,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
         print(hydrogen_storage_type)
-        def constraint_rule_H2storage_capacity_lower_bound(m, i):
-            return  m.h2_storage_capacity<=100000
-        m.con_H2storage_capacity_lower_bound = Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity_lower_bound)
+
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print(hydrogen_storage_type)
         def constraint_rule_H2storage_capacity_lower_bound(m, i):
@@ -394,11 +396,11 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     if batch_interval==720:   #for calendar month
         def load_constraint_rule(m, i):
-            return sum(m.Load[t] for t in m.time_periods if (t >= cumulative_supply[i]) and (t < cumulative_supply[i+1])) == 4320* 365 /12
+            return sum(m.Load[t] for t in m.time_periods if (t >= cumulative_supply[i]) and (t < cumulative_supply[i+1])) == hydrogen_load_flow*24*365 /12
         m.load_constraint = Constraint(range(len(cumulative_supply)-1), rule=load_constraint_rule)
     else:
         def load_constraint_rule(m, i):
-            return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == 4320 * 365 / number_of_supply
+            return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == hydrogen_load_flow*24* 365 / number_of_supply
         m.load_constraint = Constraint(m.supply_periods, rule=load_constraint_rule)
 
     def constraint_rule_H2CP_H2demand(m, i):
@@ -434,7 +436,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     def LCOH_constraint(m,i):
         return m.LCOH == (
-            (m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity* m.el_FOM+m.grid_interaction_cost/1.49))
+            (m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity* m.el_FOM+m.grid_interaction_cost*0.7))
             # /m.production_amount
             # + m.el_VOM)
     m.LCOH_constraint = Constraint(rule=LCOH_constraint)
