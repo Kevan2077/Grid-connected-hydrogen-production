@@ -34,7 +34,7 @@ def main(Year, Location, Grid, Step, Num_interval, Ratio, SO, Batch_interval, Hy
     capa = key_indicators['hydrogen_storage_capacity']
     capa = float(capa)
 
-    if capa > 0:
+    if capa > 0 and Hydrogen_storage_type !='Pipeline':        #We assume the capex of unit pipeline storage cost is fixed
         new_ug_capa = capa / 1e3
         if np.mean([new_ug_capa, initial_ug_capa]) > 0:
             while abs(new_ug_capa - initial_ug_capa) / np.mean([new_ug_capa, initial_ug_capa]) > 0.05:
@@ -86,14 +86,14 @@ Hydrogen_storage_type='Salt Cavern'              ##'Pipeline','Salt Cavern', 'Li
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1']:
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
-        for j in ['Salt Cavern', 'Lined Rock']:
+        for j in ['Pipeline','Salt Cavern', 'Lined Rock']:
             Hydrogen_storage_type=j
             key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,Num_interval=Num_interval,Ratio=Ratio,SO=SO,Batch_interval=Batch_interval,Hydrogen_storage_type=Hydrogen_storage_type)
             df = pd.concat([df, key_indicators], ignore_index=True)
 
-#df.to_csv('off-grid result.csv')
+df.to_csv('2023 off-grid result.csv')
 print(df)
 
 

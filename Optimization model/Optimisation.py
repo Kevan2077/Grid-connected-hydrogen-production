@@ -61,6 +61,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     cumulative_supply = np.cumsum(supply_periods)
 
     '''initial value of cost, unit: USD'''
+    '''
     m.c_pv = Param(initialize=1122.7)               #CAPEX of pv
     m.c_wind = Param(initialize=1455)               #CAPEX of wind
     m.c_el = Param(initialize=1067)                 #CAPEX of electrolyser
@@ -70,6 +71,17 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.wind_FOM = Param(initialize=18.65)
     m.el_FOM = Param(initialize=37.4)
     m.el_VOM = Param(initialize=0.075)   #water
+    '''
+    m.c_pv = Param(initialize=1068.2)  # CAPEX of pv
+    m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
+    m.c_el = Param(initialize=1343)  # CAPEX of electrolyser
+    m.c_hydrogen_storage = Param(
+        initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
+    m.CRF = Param(initialize=0.07822671821)
+    m.pv_FOM = Param(initialize=11.9)
+    m.wind_FOM = Param(initialize=17.5)
+    m.el_FOM = Param(initialize=37.4)
+    m.el_VOM = Param(initialize=0.075)  # water
 
     ''' renewable generation '''
     m.pv_ref_size = Param(initialize=1000)
@@ -367,7 +379,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     if hydrogen_storage_type=='Pipeline':
         print(hydrogen_storage_type)
         def constraint_rule_H2storage_capacity_lower_bound(m, i):
-            return  m.h2_storage_capacity<100000
+            return  m.h2_storage_capacity<=100000
         m.con_H2storage_capacity_lower_bound = Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity_lower_bound)
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print(hydrogen_storage_type)
@@ -597,6 +609,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             'pv_capacity': pv_capacity,
             'electrolyser_capacity': electrolyser_capacity,
             'hydrogen_storage_capacity': hydrogen_storage_capacity,
+            'hydrogen_storage_type': hydrogen_storage_type,
             'Grid_max_power_export': maximum_power_integration,
             'grid_cost': grid_interation_cost,
             'production_amount': production_amount,
