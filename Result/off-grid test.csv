@@ -1,2 +1,0 @@
-,Location,Year,LCOH,Capex,Step,RE_supply_proportion,FLH,EI_GCO,EI_MEF,EI_MeanEI,EI_L,Sell_amount,Purchase_amount,Curtailment,LGCs,wind_capacity,pv_capacity,electrolyser_capacity,hydrogen_storage_capacity,hydrogen_storage_type,Grid_max_power_export,grid_cost,production_amount,H2_initial_storage_level,Simultaneity_obligation_interval,ratio,Simultaneity_obligation,Batch_interval
-1,QLD1,2021,5.37152342,251122073.6,60,1,4641.467898,0,0,0,0,0,0,-24532268.34,0,42703.90118,68949.47369,53114.97009,100000,Lined Rock,0,0,4380000,6721.035663,0,0,1,24

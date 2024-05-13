@@ -88,7 +88,7 @@ load=180
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1']:
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
         for j in ['Pipeline','Lined Rock']:
             Hydrogen_storage_type=j
