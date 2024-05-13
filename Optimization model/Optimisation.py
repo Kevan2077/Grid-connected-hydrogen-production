@@ -138,7 +138,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #Fixed capacity
     #input the off-grid optimized results:
-    file_name='Result\\'+'off-grid test'+'.csv'
+    file_name='Result\\'+'off-grid result'+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
