@@ -88,12 +88,12 @@ SO=1
 Batch_interval=24
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline','Salt Cavern', 'Lined Rock'
 load=180
-storage_bound=200
+storage_bound=100
 capex_ratio=1
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+    for L in ['TAS1','NSW1','VIC1']:
         Location = L
         for j in ['Lined Rock','Pipeline']:
             Hydrogen_storage_type=j
@@ -106,7 +106,7 @@ for y in [2021]:
                                                      Capex_ratio=capex_ratio)
             df = pd.concat([df, key_indicators], ignore_index=True)
             print(df)
-df.to_csv('Result\\on-grid result pw.csv')
+df.to_csv('Result\\on-grid result EI_MEF constraints with pw.csv')
 
 print(df)
 

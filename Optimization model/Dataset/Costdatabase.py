@@ -3,8 +3,7 @@
 m.c_pv = Param(initialize=1122.7)  # CAPEX of pv
 m.c_wind = Param(initialize=1455)  # CAPEX of wind
 m.c_el = Param(initialize=1067)  # CAPEX of electrolyser
-m.c_hydrogen_storage = Param(
-    initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
+m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
 m.CRF = Param(initialize=0.07822671821)
 m.pv_FOM = Param(initialize=12.7)
 m.wind_FOM = Param(initialize=18.65)
