@@ -166,18 +166,19 @@ def Spotprice(year, location,step):
 def Cost_hs(size,storage_type):
     if size > 0:
         x = np.log10(size)
-        if size >= 100:
-            if storage_type=='Salt Cavern':
-                print('Storage_type is Salt Cavern')
-                cost = 10 ** (0.212669 * x ** 2 - 1.638654 * x + 4.403100)
-                if size > 8000:
-                    cost = 17.66
-            if storage_type == 'Lined Rock':
-                print('Storage_type is Lined Rock')
-                cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
-                if size > 4000:
-                    cost = 41.48
-        else:
+        #if size >= 100:
+        if storage_type=='Salt Cavern':
+            print('Storage_type is Salt Cavern')
+            cost = 10 ** (0.212669 * x ** 2 - 1.638654 * x + 4.403100)
+            if size > 8000:
+                cost = 17.66
+        if storage_type == 'Lined Rock':
+            print('Storage_type is Lined Rock')
+            cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
+            if size > 4000:
+                cost = 41.48
+    #else:
+        if storage_type == 'Pipeline':
             print('storage_type is Pipeline Storage')
             # cost = 10 ** (-0.0285*x + 2.7853)
             cost = 516
@@ -188,8 +189,17 @@ def Cost_hs(size,storage_type):
 
 
 def Comp2_conversion(size):
-    if size >= 100:
+    if size >= 24:
         comp2_conversion = 0.41
     else:
         comp2_conversion = 0
     return (comp2_conversion)
+
+
+def piecewise_function(upper_bound, insert_point):
+    size_range = np.linspace(24, upper_bound, insert_point)
+    x = np.log10(size_range)
+    # Calculate cost using the given formula
+    cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
+
+    return size_range*1000, cost

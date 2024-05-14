@@ -8,13 +8,14 @@ import numpy as np
 from Functions.Data import *
 import os
 import seaborn as sns
+
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow,capex_ratio):
+              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound, capex_ratio):
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -75,7 +76,11 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.c_pv = Param(initialize=1068.2)  # CAPEX of pv
     m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
     m.c_el = Param(initialize=1343)  # CAPEX of electrolyser
-    m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
+    #m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
+    if hydrogen_storage_type=='Pipeline':
+        m.c_hydrogen_storage=Param(initialize=516)
+    else:
+        m.c_hydrogen_storage = Var()
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=11.9)
     m.wind_FOM = Param(initialize=17.5)
@@ -122,8 +127,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     if grid==1:
         print("On-Grid")
         m.maximum_power_integration=Var(domain=NonNegativeReals) #let the system decide
-    #Maximum power exchange between the grid and hydrogen production system
-        #m.con_max_power_export=Constraint(expr=m.maximum_power_integration==m.electrolyser_capacity)
+
     else:
         print("Off-Grid")
         m.maximum_power_integration=Param(initialize=0)
@@ -133,7 +137,10 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #Variable capacity
     m.pv_capacity=Var(domain=NonNegativeReals)
     m.wind_capacity=Var(domain=NonNegativeReals)
-    m.h2_storage_capacity=Var(domain=NonNegativeReals)
+    if hydrogen_storage_type=='Pipeline':
+        m.h2_storage_capacity=Var(domain=NonNegativeReals)
+    else:
+        m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(24000, hydrogen_storage_bound * 1000))
     m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
@@ -385,9 +392,15 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print(hydrogen_storage_type)
-        def constraint_rule_H2storage_capacity_lower_bound(m, i):
-            return  m.h2_storage_capacity>=100000
-        m.con_H2storage_capacity_lower_bound = Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity_lower_bound)
+        #Piecewise function to calculate the cost
+        b,v=piecewise_function(hydrogen_storage_bound,50)  #lower bound is 24000kg
+        breakpoints =list(b)
+        function_points = list(v)
+        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity,
+                              pw_pts=breakpoints,
+                              pw_constr_type='EQ',
+                              f_rule=function_points,
+                              pw_repn='INC')
 
     #Initial level=End level
     m.con_hydrogen_storage = Constraint(expr=m.h2_storage_level[end_index] == m.initial_h2_storage_value)
@@ -446,13 +459,11 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')
     #solver = SolverFactory('ipopt')  # Use a nonlinear solver, e.g., IPOPT
-
+    solver.options['NonConvex'] = 2
     #solver.options['MIPFocus'] = 3
     #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
     #solver.options['FeasibilityTol'] = 1e-9
     results = solver.solve(m)
-
-
 
     '''Result printout'''
     if results.solver.termination_condition == TerminationCondition.optimal:
@@ -589,6 +600,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         print("Grid_connection_fee", value(m.grid_connection_fee))
         print("H2_initial_storage_level:", value(m.initial_h2_storage_value),
               "\nH2_final_storage_level:", value(m.h2_storage_level[end_index]))
+        print("Unit Capex of Hydrogen storage is", value(m.c_hydrogen_storage))
 
         # Create a dictionary with key indicators
         indicators = {
@@ -612,6 +624,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             'electrolyser_capacity': electrolyser_capacity,
             'hydrogen_storage_capacity': hydrogen_storage_capacity,
             'hydrogen_storage_type': hydrogen_storage_type,
+            'hydrogen_storage_cost':value(m.c_hydrogen_storage),
             'Grid_max_power_export': maximum_power_integration,
             'grid_cost': grid_interation_cost,
             'production_amount': production_amount,
