@@ -15,11 +15,12 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              hydrogen_storage_cost,comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound, capex_ratio):
+              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound, capex_ratio):
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     source_df=pd.read_csv(file_path, index_col=0)
+
     '''Electricity Price'''
     data=Spotprice(year,location,step)
     '''MEF'''
@@ -59,7 +60,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     # Set the time period of each calendar month
     supply_periods = [0, 24 * 31, 24 * 28, 24 * 31, 24 * 30, 24 * 31, 24 * 30, 24 * 31, 24 * 31, 24 * 30, 24 * 31,
                       24 * 30, 24 * 31]
-    cumulative_supply = np.cumsum(supply_periods)
+    cumulative_supply = np.cumsum(supply_periods) #obtain the time point of last hour in each calendar month
 
     '''initial value of cost, unit: USD'''
     '''
@@ -78,9 +79,10 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.c_el = Param(initialize=1343)  # CAPEX of electrolyser
     #m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
     if hydrogen_storage_type=='Pipeline':
-        m.c_hydrogen_storage=Param(initialize=516)
+        m.c_hydrogen_storage=Param(initialize=516)   #perhaps we need another piecewise function
     else:
-        m.c_hydrogen_storage = Var()
+        m.c_hydrogen_storage = Var() #
+
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=11.9)
     m.wind_FOM = Param(initialize=17.5)
@@ -131,8 +133,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     else:
         print("Off-Grid")
         m.maximum_power_integration=Param(initialize=0)
-
-    m.grid_connection_fee = Var(domain=NonNegativeReals)
 
     #Variable capacity
     m.pv_capacity=Var(domain=NonNegativeReals)
@@ -437,7 +437,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #Carbon Emission Requirement
     #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
-    m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
     # LCOH and capex
@@ -457,8 +457,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
-    solver = SolverFactory('gurobi')
-    #solver = SolverFactory('ipopt')  # Use a nonlinear solver, e.g., IPOPT
+    solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
+
     solver.options['NonConvex'] = 2
     #solver.options['MIPFocus'] = 3
     #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision

@@ -188,10 +188,10 @@ def Cost_hs(size,storage_type):
     return (cost)
 
 
-def Comp2_conversion(size):
-    if size >= 24:
+def Comp2_conversion(hydrogen_storage_type):
+    if hydrogen_storage_type=='Lined Rock' or  hydrogen_storage_type=='Salt Cavern':
         comp2_conversion = 0.41
-    else:
+    else: #all the hydrogen pumped into pipeline storage, in this case, no need to pump again.
         comp2_conversion = 0
     return (comp2_conversion)
 
