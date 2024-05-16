@@ -79,7 +79,7 @@ def main(Year,
 '''Parameter input'''
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=0
+Grid=1
 Step=60
 Num_interval=0
 Ratio=0
@@ -94,21 +94,19 @@ for y in [2021]:
     Year=y
     for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
-        for g in [0,1]:
-            Grid=g
-            for i in [1,24,720,8760]:
-                Batch_interval=i
-                for j in ['All']:
-                    Hydrogen_storage_type=j
-                    key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
+        for j in ['All']:
+            Hydrogen_storage_type=j
+            for i in [0,1,24,720,8760]:
+                Num_interval=i
+                key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
                                                      SO=SO,Batch_interval=Batch_interval,
                                                      storage_type=Hydrogen_storage_type,
                                                      Hydrogen_load_flow=load,
                                                      Hydrogen_storage_bound=storage_bound)
-                    df = pd.concat([df, key_indicators], ignore_index=True)
-                    print(df)
-df.to_csv('Result\\different supply periods.csv')
+                df = pd.concat([df, key_indicators], ignore_index=True)
+                print(df)
+df.to_csv('Result\\on-grid SO.csv')
 
 print(df)
 
