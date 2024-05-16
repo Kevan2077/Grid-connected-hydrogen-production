@@ -162,7 +162,7 @@ def Spotprice(year, location,step):
     
     return prices
 
-
+'''
 def Cost_hs(size,storage_type):
     if size > 0:
         x = np.log10(size)
@@ -186,6 +186,7 @@ def Cost_hs(size,storage_type):
         print('No storage set up')
         cost = 516
     return (cost)
+'''
 
 
 def Comp2_conversion(hydrogen_storage_type):
@@ -196,10 +197,18 @@ def Comp2_conversion(hydrogen_storage_type):
     return (comp2_conversion)
 
 
-def piecewise_function(upper_bound, insert_point):
-    size_range = np.linspace(24, upper_bound, insert_point)
-    x = np.log10(size_range)
-    # Calculate cost using the given formula
-    cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
+def piecewise_function(upper_bound, insert_point,hydrogen_storage_type):
+    cross_point=21.74214531
+    if hydrogen_storage_type=='Pipeline':
+        pipeline_range = np.linspace(0, upper_bound, insert_point)
+        x = np.log10(pipeline_range)
+        cost = 10 ** (-0.0285 * x + 2.7853)
+        cost[0] = 1000
+        return pipeline_range * 1000, cost
 
-    return size_range*1000, cost
+    if hydrogen_storage_type=='Lined Rock':
+        LRC_range = np.linspace(cross_point,upper_bound, insert_point)
+        x = np.log10(LRC_range)
+        cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
+
+        return LRC_range*1000, cost

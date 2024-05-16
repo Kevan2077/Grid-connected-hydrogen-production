@@ -43,10 +43,10 @@ def Calculation_LCOH(df):
     df['wind_capex+wind_OM']=(df['wind_capacity']*2126.6*CRF+df['wind_capacity']*17.5)/df['production_amount']
     df['pv_capex+pv_OM']=(df['pv_capacity']*(1068.2)*CRF+df['pv_capacity']*(11.9))/df['production_amount']
     df['hydrogen_storage_capex']=df['hydrogen_storage_capacity']*df['hydrogen_storage_cost']*CRF/df['production_amount']
-    df['electrolyser_capex+electrolyser_OM']=(df['electrolyser_capacity']*(1343)*CRF+df['electrolyser_capacity']*(37.4))/df['production_amount']+0.075
+    df['electrolyser_capex+electrolyser_OM']=(df['electrolyser_capacity']*(1343.3)*CRF+df['electrolyser_capacity']*(37.4))/df['production_amount']+0.02
     df['wind_OM']=df['wind_capacity']*17.5/df['production_amount']
     df['pv_OM']=df['pv_capacity']*(11.9)/df['production_amount']
-    df['electrolyser_OM']=df['electrolyser_capacity']*(37.4)/df['production_amount']+0.075
+    df['electrolyser_OM']=df['electrolyser_capacity']*(37.4)/df['production_amount']+0.02
     df['grid_electricity_cost']=df['grid_cost']*0.7/(df['production_amount'])
     df['LCOH_sum'] = (df['wind_capex+wind_OM'] +
                    df['pv_capex+pv_OM'] +

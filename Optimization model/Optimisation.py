@@ -15,7 +15,8 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound, capex_ratio):
+              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound):
+
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -63,31 +64,18 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     cumulative_supply = np.cumsum(supply_periods) #obtain the time point of last hour in each calendar month
 
     '''initial value of cost, unit: USD'''
-    '''
-    m.c_pv = Param(initialize=1122.7)               #CAPEX of pv
-    m.c_wind = Param(initialize=1455)               #CAPEX of wind
-    m.c_el = Param(initialize=1067)                 #CAPEX of electrolyser
-    m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)       #CAPEX of hydrogen underground storage (salt cavern) 17.66
-    m.CRF = Param(initialize=0.07822671821)
-    m.pv_FOM = Param(initialize=12.7)
-    m.wind_FOM = Param(initialize=18.65)
-    m.el_FOM = Param(initialize=37.4)
-    m.el_VOM = Param(initialize=0.075)   #water
-    '''
+
+    m.c_hydrogen_storage = Var() #piecewise function to determine cost based on its size
+
     m.c_pv = Param(initialize=1068.2)  # CAPEX of pv
     m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
-    m.c_el = Param(initialize=1343)  # CAPEX of electrolyser
-    #m.c_hydrogen_storage = Param(initialize=hydrogen_storage_cost)  # CAPEX of hydrogen underground storage (salt cavern) 17.66
-    if hydrogen_storage_type=='Pipeline':
-        m.c_hydrogen_storage=Param(initialize=516)   #perhaps we need another piecewise function
-    else:
-        m.c_hydrogen_storage = Var() #
+    m.c_el = Param(initialize=1343.3)  # CAPEX of electrolyser
 
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=11.9)
     m.wind_FOM = Param(initialize=17.5)
     m.el_FOM = Param(initialize=37.4)
-    m.el_VOM = Param(initialize=0.075)  # water
+    m.el_VOM = Param(initialize=0.02)  # the cost of water consumption
 
     ''' renewable generation '''
     m.pv_ref_size = Param(initialize=1000)
@@ -111,7 +99,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     '''Variable definition'''
 
     #Indicators:
-    m.grid_interaction_cost=Var()
+    m.grid_electricity_cost=Var()
     m.capex=Var()
     m.LCOH=Var()
     m.production_amount=Var()
@@ -137,10 +125,12 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #Variable capacity
     m.pv_capacity=Var(domain=NonNegativeReals)
     m.wind_capacity=Var(domain=NonNegativeReals)
+
     if hydrogen_storage_type=='Pipeline':
-        m.h2_storage_capacity=Var(domain=NonNegativeReals)
+        m.h2_storage_capacity=Var(domain=NonNegativeReals,bounds=(0, hydrogen_storage_bound * 1000))
     else:
-        m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(24000, hydrogen_storage_bound * 1000))
+        cross_point = 21.74214531
+        m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(cross_point* 1000, hydrogen_storage_bound * 1000))
     m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
@@ -161,10 +151,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
-        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*155==m.grid_connection_fee)
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex']*capex_ratio)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
@@ -172,9 +161,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
-        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*161==m.grid_connection_fee)
+
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex']*capex_ratio)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
 
     if location=='SA1':
         print('Location: SA')
@@ -182,9 +171,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
-        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*80==m.grid_connection_fee)
+
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex']*capex_ratio)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
 
     if location=='VIC1':
         print('Location: VIC')
@@ -192,9 +181,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
-        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*94==m.grid_connection_fee)
+
         if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex']*capex_ratio)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
 
     if location=='NSW1':
         print('Location: NSW')
@@ -202,9 +191,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
-        #m.con_grid_connection_fee=Constraint(expr=m.maximum_power_integration*68==m.grid_connection_fee)
+
         if grid==1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex']*capex_ratio)
+            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
 
 
     '''Flow variables'''
@@ -388,12 +377,20 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
-        print(hydrogen_storage_type)
-
+        print('Hydrogen storage type is',hydrogen_storage_type)
+        # Piecewise function to calculate the cost
+        b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
+        breakpoints = list(b)
+        function_points = list(v)
+        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity,
+                          pw_pts=breakpoints,
+                          pw_constr_type='EQ',
+                          f_rule=function_points,
+                          pw_repn='INC')
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
-        print(hydrogen_storage_type)
+        print('Hydrogen storage type is',hydrogen_storage_type)
         #Piecewise function to calculate the cost
-        b,v=piecewise_function(hydrogen_storage_bound,50)  #lower bound is 24000kg
+        b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
         breakpoints =list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity,
@@ -422,7 +419,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     '''Indicators'''
     #Grid interaction cost
-    m.con_cost=Constraint(expr=m.grid_interaction_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i])) for i in m.time_periods))
+    m.con_cost=Constraint(expr=m.grid_electricity_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i])) for i in m.time_periods))
     #0.034 means the integration cost of equipment which can help newly installed renewable energy reliable
     #0.01 is TUOS
 
@@ -444,12 +441,11 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_capex=Constraint(expr=m.capex==m.c_pv*m.pv_capacity+
                       m.c_wind*m.wind_capacity+
                       m.c_el*m.electrolyser_capacity+
-                      m.c_hydrogen_storage*m.h2_storage_capacity
-                      +m.grid_connection_fee)
+                      m.c_hydrogen_storage*m.h2_storage_capacity)
 
     def LCOH_constraint(m,i):
         return m.LCOH == (
-            (m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity* m.el_FOM+m.grid_interaction_cost*0.7))
+            (m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity* m.el_FOM+m.grid_electricity_cost*0.7))
             # /m.production_amount
             # + m.el_VOM)
     m.LCOH_constraint = Constraint(rule=LCOH_constraint)
@@ -516,8 +512,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             MEF_CO2.append(value(m.MEF_CO2[Time]))
             AEF_CO2.append(value(m.AEF_CO2[Time]))
             load.append(value(m.Load[Time]))
-        # for time_interval in m.check_periods:
-        #    print("Time point",time_interval,":",sum(value(m.grid_pin[i]) + value(m.grid_pout[i]) for i in range(time_interval, min(time_interval + interval, 8760))))
 
         data = {'grid_interaction': grid_interaction,
                 'CP_grid_out': CP_grid_out,
@@ -561,22 +555,22 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
         ''' location-based carbon emission calculation method:  (kg CO2e/kWh)'''
         if location == 'QLD1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.73)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.73)) / production_amount
         if location == 'NSW1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.68)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.68)) / production_amount
         if location == 'TAS1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.12)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.12)) / production_amount
         if location == 'VIC1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.79)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.79)) / production_amount
         if location == 'SA1':
-            CI_location_based_method = -sum(df['grid_interaction'] * (0.25)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.25)) / production_amount
 
         ''' Market-based carbon emission calculation method:  (kg CO2e/kWh)'''
         market_based_emission = (-1 * purchase_amount * (1 - 0.188) - (sell_amount)) * 0.81 / production_amount
         LGCs = (-1 * purchase_amount * (1 - 0.188) - (sell_amount)) / 1000
 
         capex = value(m.capex)
-        grid_interation_cost = value(m.grid_interaction_cost)
+        grid_electricity_cost = value(m.grid_electricity_cost)
         production_amount = sum(df['Load'])
         MEF_carbon_emissions = sum(df['MEF_CO2']) / value(m.production_amount)
         AEF_carbon_emissions = sum(df['AEF_CO2']) / value(m.production_amount)
@@ -591,13 +585,12 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         print("LCOH:", LCOH)
         print("Capex:", capex)
         print('Model running resolution:', step)
-        print("Average_grid_interaction_cost:", value(m.grid_interaction_cost) / value(m.production_amount))
+        print("Average_grid_electricity_cost:", value(m.grid_electricity_cost) / value(m.production_amount))
         print("production_amount:", sum(df['Load']))
         print("EI_MEF:", sum(df['MEF_CO2']) / value(m.production_amount))
         print("EI_AEF:", sum(df['AEF_CO2']) / value(m.production_amount))
-        print("EI_L:", CI_location_based_method)
-        print("EI_GCO:", market_based_emission)
-        print("Grid_connection_fee", value(m.grid_connection_fee))
+        print("EI_L:", EI_location_based_method)
+        print("EI_market:", market_based_emission)
         print("H2_initial_storage_level:", value(m.initial_h2_storage_value),
               "\nH2_final_storage_level:", value(m.h2_storage_level[end_index]))
         print("Unit Capex of Hydrogen storage is", value(m.c_hydrogen_storage))
@@ -611,10 +604,10 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             'Step': step,
             'RE_supply_proportion': Supply_proportion,
             'FLH': Full_load_hours,
-            'EI_GCO': market_based_emission,
+            'EI_market': market_based_emission,
             'EI_MEF': MEF_carbon_emissions,
-            'EI_MeanEI': AEF_carbon_emissions,
-            'EI_L': CI_location_based_method,
+            'EI_AEF': AEF_carbon_emissions,
+            'EI_L': EI_location_based_method,
             'Sell_amount': sell_amount,
             'Purchase_amount': purchase_amount,
             'Curtailment': curtail,
@@ -626,7 +619,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             'hydrogen_storage_type': hydrogen_storage_type,
             'hydrogen_storage_cost':value(m.c_hydrogen_storage),
             'Grid_max_power_export': maximum_power_integration,
-            'grid_cost': grid_interation_cost,
+            'grid_cost': grid_electricity_cost,
             'production_amount': production_amount,
             'H2_initial_storage_level': h2_initial_storage_level,
             'Simultaneity_obligation_interval': num_interval,

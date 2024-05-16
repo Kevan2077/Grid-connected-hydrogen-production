@@ -21,12 +21,15 @@ def main(Year,
          Ratio,
          SO,
          Batch_interval,
-         Hydrogen_storage_type,
+         storage_type,
          Hydrogen_load_flow,
-         Hydrogen_storage_bound,
-         Capex_ratio):
-
-    operation_result, key_indicators = optimiser(year=Year,
+         Hydrogen_storage_bound):
+    df=pd.DataFrame()
+    opt=pd.DataFrame()
+    if storage_type=='All':
+        for i in ['Pipeline','Lined Rock']:
+            Hydrogen_storage_type = i
+            operation_result, key_indicators = optimiser(year=Year,
                                                  location=Location,
                                                  grid=Grid,
                                                  step=Step,
@@ -36,18 +39,39 @@ def main(Year,
                                                  comp2_conversion=Comp2_conversion(Hydrogen_storage_type),
                                                  hydrogen_storage_type=Hydrogen_storage_type,
                                                  hydrogen_load_flow=Hydrogen_load_flow,
-                                                 hydrogen_storage_bound=Hydrogen_storage_bound,
-                                                 capex_ratio=Capex_ratio)
-    if key_indicators is not None:
-        capa = key_indicators['hydrogen_storage_capacity']
-        capa = float(capa)
-        print(key_indicators)
+                                                 hydrogen_storage_bound=Hydrogen_storage_bound)
+
+            if key_indicators is not None:
+                print(key_indicators)
+                df = pd.concat([df, key_indicators], ignore_index=True)
+                opt=pd.concat([opt, operation_result], axis=1)
+
+            if key_indicators is None:
+                print(f'Under the hydrogen storage type {Hydrogen_storage_type}')
+                print('No optimal solution found')
+        min_index = df['LCOH'].idxmin()
+        # Drop the row with the minimum value in 'LCOH' column
+        df.drop(df.index.difference([min_index]), inplace=True)
+        return df, operation_result
+
+    else:
+        Hydrogen_storage_type = storage_type
+        operation_result, key_indicators = optimiser(year=Year,
+                                                     location=Location,
+                                                     grid=Grid,
+                                                     step=Step,
+                                                     num_interval=Num_interval, ratio=Ratio,
+                                                     SO=SO,
+                                                     batch_interval=Batch_interval,
+                                                     comp2_conversion=Comp2_conversion(Hydrogen_storage_type),
+                                                     hydrogen_storage_type=Hydrogen_storage_type,
+                                                     hydrogen_load_flow=Hydrogen_load_flow,
+                                                     hydrogen_storage_bound=Hydrogen_storage_bound)
+        #return all the results given various hydrogen storage options
         return key_indicators,operation_result
 
-    if key_indicators is None:
-        print(f'Under the hydrogen storage type {Hydrogen_storage_type}')
-        print('No optimal solution found')
-        return None, None
+
+
 
 
 
@@ -55,16 +79,16 @@ def main(Year,
 '''Parameter input'''
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=1
+Grid=0
 Step=60
 Num_interval=0
 Ratio=0
 SO=1
 Batch_interval=24
-Hydrogen_storage_type='Lined Rock'              ##'Pipeline','Salt Cavern', 'Lined Rock'
+Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
-storage_bound=100
-capex_ratio=1
+storage_bound=100    #tonnes
+
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
@@ -72,17 +96,16 @@ for y in [2021]:
         Location = L
         for g in [0,1]:
             Grid=g
-            for j in ['Lined Rock','Pipeline']:
-                Hydrogen_storage_type=j
-                for k in [1,24,720,8760]:
-                    Batch_interval=k
+            for i in [1,24,720,8760]:
+                Batch_interval=i
+                for j in ['All']:
+                    Hydrogen_storage_type=j
                     key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
                                                      SO=SO,Batch_interval=Batch_interval,
-                                                     Hydrogen_storage_type=Hydrogen_storage_type,
+                                                     storage_type=Hydrogen_storage_type,
                                                      Hydrogen_load_flow=load,
-                                                     Hydrogen_storage_bound=storage_bound,
-                                                     Capex_ratio=capex_ratio)
+                                                     Hydrogen_storage_bound=storage_bound)
                     df = pd.concat([df, key_indicators], ignore_index=True)
                     print(df)
 df.to_csv('Result\\different supply periods.csv')
