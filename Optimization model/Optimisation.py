@@ -152,49 +152,51 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
+
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
-        #m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
+        m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
-
+        m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
+        '''
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
-
+        '''
     if location=='SA1':
         print('Location: SA')
-        #m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
+        m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
-
+        m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
+        '''
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
+        '''
 
     if location=='VIC1':
         print('Location: VIC')
-        #m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
+        m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
-
+        m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
+        '''
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
-
+        '''
     if location=='NSW1':
         print('Location: NSW')
-        #m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
+        m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
-
+        m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
+        '''
         if grid==1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
-
+        '''
 
     '''Flow variables'''
 
