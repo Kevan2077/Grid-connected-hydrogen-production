@@ -123,15 +123,15 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    m.pv_capacity=Var(domain=NonNegativeReals)
-    m.wind_capacity=Var(domain=NonNegativeReals)
+    #m.pv_capacity=Var(domain=NonNegativeReals)
+    #m.wind_capacity=Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
         m.h2_storage_capacity=Var(domain=NonNegativeReals,bounds=(0, hydrogen_storage_bound * 1000))
     else:
         cross_point = 21.74214531
         m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(cross_point* 1000, hydrogen_storage_bound * 1000))
-    m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
     #input the off-grid optimized results:
@@ -147,10 +147,10 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     if location=='QLD1':
         print('Location: QLD')
-        #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
+        m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
+        m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
 
         if grid == 1:
@@ -485,6 +485,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         comp_pin = list()
         h2_storage_pin = list()
         h2_storage_pout = list()
+        H2CP_h2_demand=list()
+        H2CP_h2_storage=list()
         h2_storage_level = list()
         price = list()
         MEF_CO2 = list()
@@ -510,6 +512,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             h2_storage_pin.append(value(m.h2_storage_pin[Time]))
             h2_storage_pout.append(value(m.h2_storage_pout[Time]))
             h2_storage_level.append(value(m.h2_storage_level[Time]))
+            H2CP_h2_demand.append(value(m.H2CP_h2_demand[Time]))
+            H2CP_h2_storage.append(value(m.H2CP_h2_storage[Time]))
             price.append(value(m.price[Time]))
             MEF_CO2.append(value(m.MEF_CO2[Time]))
             AEF_CO2.append(value(m.AEF_CO2[Time]))
@@ -533,6 +537,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
                 'h2_storage_pin': h2_storage_pin,
                 'h2_storage_pout': h2_storage_pout,
                 'h2_storage_level': h2_storage_level,
+                'Direct_pipeline_pout': H2CP_h2_demand,
                 'price': price,
                 'MEF_CO2': MEF_CO2,
                 'AEF_CO2': AEF_CO2,

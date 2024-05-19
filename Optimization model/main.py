@@ -82,7 +82,7 @@ Year=2021
 Grid=1
 Step=60
 Num_interval=0
-Ratio=0
+Ratio=1
 SO=1
 Batch_interval=24
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
@@ -106,7 +106,7 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-                operation_result.to_csv(f'Result\\Flow Track\\QLD different batch interval flow track {i}.csv')
+                operation_result.to_csv(f'Result\\different supply periods\\QLD different batch interval flow track (pipeline){i}.csv')
 
 print(df)
 
