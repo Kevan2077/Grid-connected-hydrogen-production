@@ -25,7 +25,8 @@ def main(Year,
          Hydrogen_load_flow,
          Hydrogen_storage_bound):
     df=pd.DataFrame()
-    opt=pd.DataFrame()
+    opt1=pd.DataFrame()
+    opt2 = pd.DataFrame()
     if storage_type=='All':
         for i in ['Pipeline','Lined Rock']:
             Hydrogen_storage_type = i
@@ -44,15 +45,20 @@ def main(Year,
             if key_indicators is not None:
                 print(key_indicators)
                 df = pd.concat([df, key_indicators], ignore_index=True)
-                opt=pd.concat([opt, operation_result], axis=1)
-
+                if Hydrogen_storage_type=='Pipeline':
+                    opt1=pd.concat([opt1, operation_result], axis=1)
+                else:
+                    opt2 = pd.concat([opt2, operation_result], axis=1)
             if key_indicators is None:
                 print(f'Under the hydrogen storage type {Hydrogen_storage_type}')
                 print('No optimal solution found')
         min_index = df['LCOH'].idxmin()
         # Drop the row with the minimum value in 'LCOH' column
         df.drop(df.index.difference([min_index]), inplace=True)
-        return df, operation_result
+        if (df['hydrogen_storage_type'] == 'Pipeline').any():
+            return df, opt1
+        else:
+            return df, opt2
 
     else:
         Hydrogen_storage_type = storage_type
@@ -83,7 +89,7 @@ Grid=1
 Step=60
 Num_interval=0
 Ratio=1
-SO=1
+SO=0
 Batch_interval=24
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
@@ -92,11 +98,11 @@ storage_bound=100    #tonnes
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1']:
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
-        for j in ['Pipeline']:
+        for j in ['All']:
             Hydrogen_storage_type=j
-            for i in [1,24,720,8760]:
+            for i in [24]:
                 Batch_interval=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
@@ -106,8 +112,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-                operation_result.to_csv(f'Result\\different supply periods\\QLD different batch interval flow track (pipeline){i}.csv')
-
+                operation_result.to_csv(f'Result\\Batch periods\\different batch periods flow track{L}.csv')
+df.to_csv('Result\\Batch periods\\different batch periods flow track.csv')
 print(df)
 
 

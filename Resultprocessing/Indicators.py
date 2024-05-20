@@ -71,4 +71,96 @@ def Calculation_LCOH(df):
     return df
 '''
 
+'''Batch periods'''
+
+
+def EI_batch_periods(location, operation_result, interval):
+    production_results = []
+    carbon_results = []
+    sell_results = []
+    purchase_results = []
+    grid_cost_results = []
+    # Iterate over the dataframe in chunks of {interval} rows
+    if interval != 720:
+        for i in range(0, len(operation_result), interval):
+            # Get the chunk of rows
+            chunk = operation_result.iloc[i:i + interval]
+            # Check if the length of the chunk matches the specified interval length
+            # Calculate the sum for each column in the chunk
+            production_sum = -chunk['el_pout'].sum()
+            carbon_sum = chunk['MEF_CO2'].sum()
+            sell_sum = chunk['grid_pin'].sum()
+            purchase_sum = chunk['grid_pout'].sum()
+            grid_cost_sum = chunk['grid_electricity_cost'].sum()
+            # Append the sums to the respective results lists
+            production_results.append(production_sum)
+            carbon_results.append(carbon_sum)
+            sell_results.append(sell_sum)
+            purchase_results.append(purchase_sum)
+            grid_cost_results.append(grid_cost_sum)
+
+    else:
+        print('Interval is monthly resolution')
+        supply_points = [0, 24 * 31, 24 * 28, 24 * 31, 24 * 30, 24 * 31, 24 * 30, 24 * 31, 24 * 31, 24 * 30, 24 * 31,
+                         24 * 30, 24 * 31]
+        cumulative_supply_points = np.cumsum(supply_points)
+
+        for i in range(0, len(cumulative_supply_points) - 1):
+            chunk = operation_result.iloc[cumulative_supply_points[i]:cumulative_supply_points[i + 1]]
+            production_sum = -chunk['el_pout'].sum()
+            carbon_sum = chunk['MEF_CO2'].sum()
+            sell_sum = chunk['grid_pin'].sum()
+            purchase_sum = chunk['grid_pout'].sum()
+            grid_cost_sum = chunk['grid_electricity_cost'].sum()
+            # Append the sums to the respective results lists
+            production_results.append(production_sum)
+            carbon_results.append(carbon_sum)
+            sell_results.append(sell_sum)
+            purchase_results.append(purchase_sum)
+            grid_cost_results.append(grid_cost_sum)
+
+    batch_df = pd.DataFrame({'Batch': range(1, len(production_results) + 1),
+                             'Total_production': production_results,
+                             'Total_CO2': carbon_results,
+                             'Total_sell': sell_results,
+                             'Total_purchase': purchase_results,
+                             'Total_grid_cost': grid_cost_results})
+    # batch_df['Marginal_cost'] = batch_df['Total_grid_cost']/1.49 / batch_df['Total_production']+0.075
+    batch_df['EI_MEF'] = np.where(batch_df['Total_production'] == 0, 0,
+                                  batch_df['Total_CO2'] / batch_df['Total_production'])
+    batch_df['EI_Market'] = np.where(batch_df['Total_production'] == 0, 0,
+                                     (-1 * batch_df['Total_purchase'] * (1 - 0.188) - (batch_df['Total_sell'])) * 0.81 /
+                                     batch_df['Total_production'])
+
+    if location == 'QLD1':
+        batch_df['EI_L'] = np.where(batch_df['Total_production'] == 0, 0,
+                                    -1 * (batch_df['Total_purchase'] + batch_df['Total_sell']) * 0.73 / batch_df[
+                                        'Total_production'])
+    if location == 'NSW1':
+        batch_df['EI_L'] = np.where(batch_df['Total_production'] == 0, 0,
+                                    -1 * (batch_df['Total_purchase'] + batch_df['Total_sell']) * 0.68 / batch_df[
+                                        'Total_production'])
+    if location == 'TAS1':
+        batch_df['EI_L'] = np.where(batch_df['Total_production'] == 0, 0,
+                                    -1 * (batch_df['Total_purchase'] + batch_df['Total_sell']) * 0.12 / batch_df[
+                                        'Total_production'])
+    if location == 'VIC1':
+        batch_df['EI_L'] = np.where(batch_df['Total_production'] == 0, 0,
+                                    -1 * (batch_df['Total_purchase'] + batch_df['Total_sell']) * 0.79 / batch_df[
+                                        'Total_production'])
+    if location == 'SA1':
+        batch_df['EI_L'] = np.where(batch_df['Total_production'] == 0, 0,
+                                    -1 * (batch_df['Total_purchase'] + batch_df['Total_sell']) * 0.25 / batch_df[
+                                        'Total_production'])
+    batch_df.replace([np.inf, -np.inf], 0, inplace=True)
+    # When RECs is positive, which indicate we obtain RECs by selling more electricity
+    batch_df['RECs'] = (batch_df['Total_purchase'] * (1 - 0.188) + batch_df['Total_sell']) / 1000
+    return batch_df
+
+
+
+
+
+
+
 

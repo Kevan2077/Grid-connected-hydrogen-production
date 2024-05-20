@@ -123,15 +123,15 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    #m.pv_capacity=Var(domain=NonNegativeReals)
-    #m.wind_capacity=Var(domain=NonNegativeReals)
+    m.pv_capacity=Var(domain=NonNegativeReals)
+    m.wind_capacity=Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
         m.h2_storage_capacity=Var(domain=NonNegativeReals,bounds=(0, hydrogen_storage_bound * 1000))
     else:
         cross_point = 21.74214531
         m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(cross_point* 1000, hydrogen_storage_bound * 1000))
-    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
     #input the off-grid optimized results:
@@ -147,56 +147,55 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     if location=='QLD1':
         print('Location: QLD')
-        m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
-        m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
+        #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
-        m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
+        #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
         #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
-
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
     if location=='TAS1':
         print('Location: TAS')
-        m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
-        m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
+        #m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
-        m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
-        '''
+        #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
+
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
-        '''
+
     if location=='SA1':
         print('Location: SA')
-        m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
-        m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
+        #m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
-        m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
-        '''
+        #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
+
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
-        '''
+
 
     if location=='VIC1':
         print('Location: VIC')
-        m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
-        m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
+        #m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
-        m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
-        '''
+        #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
+
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
-        '''
+
     if location=='NSW1':
         print('Location: NSW')
-        m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
-        m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
+        #m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
+        #m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
-        m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
-        '''
+        #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
+
         if grid==1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
-        '''
+
 
     '''Flow variables'''
 
@@ -435,7 +434,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
@@ -451,7 +450,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             # /m.production_amount
             # + m.el_VOM)
     m.LCOH_constraint = Constraint(rule=LCOH_constraint)
-    #1.49 is the ratio between AUD:USD
+    #0.7 is the ratio between USD:AUD
 
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
@@ -460,7 +459,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     solver.options['NonConvex'] = 2
     #solver.options['MIPFocus'] = 3
     #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
-    #solver.options['FeasibilityTol'] = 1e-9
+    solver.options['FeasibilityTol'] = 1e-9
     results = solver.solve(m)
 
     '''Result printout'''
