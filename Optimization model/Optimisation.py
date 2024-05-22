@@ -293,6 +293,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_comp = Constraint(m.time_periods, rule=constraint_rule_comp)
 
     '''Grid Node'''
+    '''
     #Big M method to constraint direction can be two-ways at the same time
     def constraint_rule_CP_grid(m, i):
         return m.grid_pin[i] <= m.is_grid_pin_active[i] * m.M  # M is a large constant
@@ -305,7 +306,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     def constraint_rule_CP_grid_one_flow(m, i):
         return m.is_grid_pin_active[i] + m.is_grid_pout_active[i] == 1
     m.con_grid_one_flow = Constraint(m.time_periods, rule=constraint_rule_CP_grid_one_flow)
-
+    '''
     #sell and buy constraint
     def constraint_rule_grid_buy_max(m, i):
         return  m.grid_pout[i]>=-m.maximum_power_integration
@@ -377,19 +378,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     def constraint_rule_H2storage_capacity(m, i):
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
-    '''
-    def constraint_rule_CP_storage_one_flow_in(m, i):
-        return m.h2_storage_pin[i] <= m.is_storage_pin_active[i] * m.M  # M is a large constant
-    m.con_CP_storage_one_flow_in = Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow_in)
 
-    def constraint_rule_CP_storage_one_flow_out(m, i):
-        return -m.h2_storage_pout[i] <= m.is_storage_pout_active[i] * m.M  # M is a large constant
-    m.con_CP_storage_one_flow_out = Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow_out)
-
-    def constraint_rule_CP_storage_one_flow(m, i):
-        return m.is_storage_pin_active[i] + m.is_storage_pout_active[i] == 1
-    m.con_CP_storage_one_flow= Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow)
-    '''
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)

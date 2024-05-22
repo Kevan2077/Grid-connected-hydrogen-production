@@ -102,7 +102,7 @@ for y in [2021]:
         Location = L
         for j in ['Pipeline']:
             Hydrogen_storage_type=j
-            for i in [24,720,8760]:
+            for i in [24]:
                 Batch_interval=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
