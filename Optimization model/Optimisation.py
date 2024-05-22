@@ -111,7 +111,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #check whether the flow can be active or not using Big M method
     m.is_grid_pin_active = Var(m.time_periods, within=Binary)
     m.is_grid_pout_active = Var(m.time_periods, within=Binary)
-    m.M=Param(initialize=1e10)
+    m.M=Param(initialize=1e6)
 
     #Transmission cost may varied according to the maximum power integration scale
     if grid==1:
@@ -293,8 +293,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_comp = Constraint(m.time_periods, rule=constraint_rule_comp)
 
     '''Grid Node'''
-    '''
+
     #Big M method to constraint direction can be two-ways at the same time
+    '''
     def constraint_rule_CP_grid(m, i):
         return m.grid_pin[i] <= m.is_grid_pin_active[i] * m.M  # M is a large constant
     m.con_grid_pin = Constraint(m.time_periods, rule=constraint_rule_CP_grid)
@@ -379,6 +380,21 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
 
+    #Hydrogen storage flow constraint
+    def constraint_rule_storage_flow_pin(m, i):
+        return m.h2_storage_pin[i] <= m.is_storage_pin_active[i] * m.M  # M is a large constant
+    m.con_storage_flow_pin = Constraint(m.time_periods, rule=constraint_rule_storage_flow_pin)
+
+    def constraint_rule_storage_flow_pout(m, i):
+        return -m.h2_storage_pout[i] <= m.is_storage_pout_active[i] * m.M  # M is a large constant
+    m.con_storage_flow_pout = Constraint(m.time_periods, rule=constraint_rule_storage_flow_pout)
+
+    def constraint_rule_storage_flow(m, i):
+        return m.is_storage_pin_active[i] + m.is_storage_pout_active[i] == 1
+    m.con_storage_flow = Constraint(m.time_periods, rule=constraint_rule_storage_flow)
+
+
+
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)
@@ -458,11 +474,12 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
-
+    solver.options['NodefileStart'] = 1e+6
     solver.options['NonConvex'] = 2
-    #solver.options['MIPFocus'] = 3
+    #solver.options['MIPFocus'] = 2
     #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
-    solver.options['FeasibilityTol'] = 1e-9
+    solver.options['TuneResults'] = 1
+    #solver.options['FeasibilityTol'] = 1e-9
     results = solver.solve(m)
 
     '''Result printout'''
@@ -487,7 +504,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         comp_pin = list()
         h2_storage_pin = list()
         h2_storage_pout = list()
-        H2CP_h2_demand=list()
+        Direct_pipeline_supply=list()
         H2CP_h2_storage=list()
         h2_storage_level = list()
         price = list()
@@ -514,7 +531,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             h2_storage_pin.append(value(m.h2_storage_pin[Time]))
             h2_storage_pout.append(value(m.h2_storage_pout[Time]))
             h2_storage_level.append(value(m.h2_storage_level[Time]))
-            H2CP_h2_demand.append(value(m.H2CP_h2_demand[Time]))
+            Direct_pipeline_supply.append(value(m.H2CP_h2_demand[Time])-value(m.h2_storage_pout[Time]))
             H2CP_h2_storage.append(value(m.H2CP_h2_storage[Time]))
             price.append(value(m.price[Time]))
             MEF_CO2.append(value(m.MEF_CO2[Time]))
@@ -539,7 +556,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
                 'h2_storage_pin': h2_storage_pin,
                 'h2_storage_pout': h2_storage_pout,
                 'h2_storage_level': h2_storage_level,
-                'Direct_pipeline_pout': H2CP_h2_demand,
+                'Direct_pipeline_pout': Direct_pipeline_supply,
                 'price': price,
                 'MEF_CO2': MEF_CO2,
                 'AEF_CO2': AEF_CO2,
@@ -549,7 +566,19 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         # Create a DataFrame
         df = pd.DataFrame(data)
         df['Time'] = Spotprice(2021, 'QLD1', 60)['Time']
-        objective_value = value(m.obj)  # Replace 'obj' with your objective name
+
+        #Test the flow direction
+        if (df['h2_storage_pout']*df['h2_storage_pin']).sum()==0:
+            print('Hydrogen Storage Interaction Flow is Correct')
+        else:
+            print('Hydrogen Storage Interaction Flow is Incorrect')
+            return None, None
+
+        if (df['grid_pout']*df['grid_pin']).sum()==0:
+            print('Grid Flow Interaction is Correct')
+        else:
+            print('Grid Flow Interaction is Incorrect')
+            return None, None
 
 
         '''Save key indicators:'''

@@ -85,11 +85,11 @@ def main(Year,
 '''Parameter input'''
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=1
+Grid=0
 Step=60
 Num_interval=0
 Ratio=1
-SO=0
+SO=1
 Batch_interval=24
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
@@ -98,12 +98,34 @@ storage_bound=100    #tonnes
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1']:
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         Location = L
-        for j in ['Pipeline']:
+        for j in ['All']:
             Hydrogen_storage_type=j
-            for i in [24]:
-                Batch_interval=i
+            #for i in [0,1,24,720,8760]:
+            #    Num_interval=i
+            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
+                                                     Num_interval=Num_interval,Ratio=Ratio,
+                                                     SO=SO,Batch_interval=Batch_interval,
+                                                     storage_type=Hydrogen_storage_type,
+                                                     Hydrogen_load_flow=load,
+                                                     Hydrogen_storage_bound=storage_bound)
+            df = pd.concat([df, key_indicators], ignore_index=True)
+            print(df)
+                #operation_result.to_csv(f'Result\\QLD system operation tracking (off-grid) {i} in {L} ({j}).csv')
+df.to_csv(f'Result\\new off-grid result.csv')
+print(df)
+
+
+Grid=1
+for y in [2021]:
+    Year=y
+    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+        Location = L
+        for j in ['All']:
+            Hydrogen_storage_type=j
+            for i in [0,1,24,720,8760]:
+                Num_interval=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
                                                      SO=SO,Batch_interval=Batch_interval,
@@ -112,12 +134,9 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-                operation_result.to_csv(f'Result\\Different supply periods\\different supply periods {i} in {L} (Pipeline).csv')
-df.to_csv('Result\\Different supply periods\\Different supply periods in QLD (Pipeline).csv')
+                #operation_result.to_csv(f'Result\\QLD system operation tracking (off-grid) {i} in {L} ({j}).csv')
+df.to_csv(f'Result\\new on-grid SO.csv')
 print(df)
-
-
-
 
 
 
