@@ -98,11 +98,11 @@ storage_bound=100    #tonnes
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+    for L in ['QLD1']:
         Location = L
-        for j in ['All']:
+        for j in ['Pipeline']:
             Hydrogen_storage_type=j
-            for i in [24]:
+            for i in [24,720,8760]:
                 Batch_interval=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
@@ -112,8 +112,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-                operation_result.to_csv(f'Result\\Batch periods\\different batch periods flow track{L}.csv')
-df.to_csv('Result\\Batch periods\\different batch periods flow track.csv')
+                operation_result.to_csv(f'Result\\Different supply periods\\different supply periods {i} in {L} (Pipeline).csv')
+df.to_csv('Result\\Different supply periods\\Different supply periods in QLD (Pipeline).csv')
 print(df)
 
 

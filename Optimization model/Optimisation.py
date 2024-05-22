@@ -231,7 +231,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #H2 connection point node:
     m.H2CP_el= Var(m.time_periods, domain=NonNegativeReals)       #into
-    m.H2CP_h2_storage= Var(m.time_periods, domain=NonPositiveReals)   #out
+    m.H2CP_h2_storage= Var(m.time_periods, domain=Reals)   #out
     m.H2CP_h2_demand= Var(m.time_periods, domain=NonPositiveReals)       #out
 
     # H2 storage node:
@@ -239,6 +239,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.h2_storage_pout = Var(m.time_periods, domain=NonPositiveReals)    #out
     m.h2_storage_level = Var(m.interval, domain=NonNegativeReals)
     m.initial_h2_storage_value = Var(domain=NonNegativeReals)
+    m.is_storage_pin_active = Var(m.time_periods, within=Binary)
+    m.is_storage_pout_active = Var(m.time_periods, within=Binary)
 
     '''Constraints'''
 
@@ -355,7 +357,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     # Output to hydrogen storage
     def constraint_rule_H2CP_H2storage(m, i):
-        return  m.H2CP_h2_storage[i]+ m.h2_storage_pin[i]==0
+        return  m.H2CP_h2_storage[i]+ m.h2_storage_pin[i]+m.h2_storage_pout[i]==0
     m.con_H2CP_H2storage= Constraint(m.time_periods, rule=constraint_rule_H2CP_H2storage)
 
     '''Hydrogen storage Node'''
@@ -375,7 +377,19 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     def constraint_rule_H2storage_capacity(m, i):
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
+    '''
+    def constraint_rule_CP_storage_one_flow_in(m, i):
+        return m.h2_storage_pin[i] <= m.is_storage_pin_active[i] * m.M  # M is a large constant
+    m.con_CP_storage_one_flow_in = Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow_in)
 
+    def constraint_rule_CP_storage_one_flow_out(m, i):
+        return -m.h2_storage_pout[i] <= m.is_storage_pout_active[i] * m.M  # M is a large constant
+    m.con_CP_storage_one_flow_out = Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow_out)
+
+    def constraint_rule_CP_storage_one_flow(m, i):
+        return m.is_storage_pin_active[i] + m.is_storage_pout_active[i] == 1
+    m.con_CP_storage_one_flow= Constraint(m.time_periods, rule=constraint_rule_CP_storage_one_flow)
+    '''
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)
@@ -415,7 +429,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         m.load_constraint = Constraint(m.supply_periods, rule=load_constraint_rule)
 
     def constraint_rule_H2CP_H2demand(m, i):
-        return  m.H2CP_h2_demand[i]+m.h2_storage_pout[i]+ m.Load[i]==0
+        return  m.H2CP_h2_demand[i]+ m.Load[i]==0
     m.con_H2CP_H2demand= Constraint(m.time_periods, rule=constraint_rule_H2CP_H2demand)
 
     '''Indicators'''
@@ -434,7 +448,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
