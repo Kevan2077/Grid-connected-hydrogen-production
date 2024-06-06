@@ -200,7 +200,7 @@ def Comp2_conversion(hydrogen_storage_type):
 def piecewise_function(upper_bound, insert_point,hydrogen_storage_type):
     cross_point=21.74214531
     if hydrogen_storage_type=='Pipeline':
-        pipeline_range = np.linspace(0, upper_bound, insert_point)
+        pipeline_range = np.linspace(0, cross_point, insert_point)
         x = np.log10(pipeline_range)
         cost = 10 ** (-0.0285 * x + 2.7853)
         cost[0] = 1000
@@ -211,4 +211,4 @@ def piecewise_function(upper_bound, insert_point,hydrogen_storage_type):
         x = np.log10(LRC_range)
         cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
 
-        return LRC_range*1000, cost
+        return LRC_range, cost

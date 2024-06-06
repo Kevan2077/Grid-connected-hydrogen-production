@@ -1,5 +1,6 @@
 ##### Library import
 # Import Pyomo and the required modules
+from pyomo.core import Var
 from pyomo.environ import *
 #from sklearn import metrics
 import warnings
@@ -7,6 +8,8 @@ import pandas as pd
 import numpy as np
 from Functions.Data import *
 import os
+import sys
+
 import seaborn as sns
 
 pd.set_option('display.max_columns', None)
@@ -55,7 +58,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     '''Set different supply requirement'''
     #larger batch size needs to meet larger hydrogen demand
     m.supply_periods=RangeSet(0,num_simulation-1,batch_interval)
-    number_of_supply = len(m.supply_periods)
+    number_of_supply: int = len(m.supply_periods)
     print('Batch interval:', batch_interval)
 
     # Set the time period of each calendar month
@@ -111,7 +114,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #check whether the flow can be active or not using Big M method
     m.is_grid_pin_active = Var(m.time_periods, within=Binary)
     m.is_grid_pout_active = Var(m.time_periods, within=Binary)
-    m.M=Param(initialize=1e6)
+    m.M=Param(initialize=1e10)
 
     #Transmission cost may varied according to the maximum power integration scale
     if grid==1:
@@ -127,15 +130,19 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.wind_capacity=Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
-        m.h2_storage_capacity=Var(domain=NonNegativeReals,bounds=(0, hydrogen_storage_bound * 1000))
+        cross_point = 21.74214531
+        m.h2_storage_capacity=Var(domain=NonNegativeReals)
+        m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(0, cross_point))
     else:
         cross_point = 21.74214531
-        m.h2_storage_capacity = Var(domain=NonNegativeReals, bounds=(cross_point* 1000, hydrogen_storage_bound * 1000))
+        m.h2_storage_capacity = Var(domain=NonNegativeReals)
+        m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(cross_point, hydrogen_storage_bound))
     m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
     #input the off-grid optimized results:
-    file_name='Result\\'+'off-grid result'+'.csv'
+    #file_name='Optimization model\\Result\\Hourly supply periods\\'+'off-grid result'+'.csv'
+    file_name='D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Result\Hourly supply period\off-grid result.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
@@ -151,7 +158,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
         #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
         #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
-        #m.con_grid_connection = Constraint(expr=m.maximum_power_integration == m.electrolyser_capacity*1)
+
         if grid == 1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
 
@@ -196,7 +203,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         if grid==1:
             m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
 
-
     '''Flow variables'''
 
     #PV and wind node:
@@ -231,10 +237,11 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #H2 connection point node:
     m.H2CP_el= Var(m.time_periods, domain=NonNegativeReals)       #into
-    m.H2CP_h2_storage= Var(m.time_periods, domain=Reals)   #out
+    m.H2CP_h2_storage: Var= Var(m.time_periods, domain=Reals)   
     m.H2CP_h2_demand= Var(m.time_periods, domain=NonPositiveReals)       #out
 
     # H2 storage node:
+
     m.h2_storage_pin = Var(m.time_periods, domain=NonNegativeReals)     #into
     m.h2_storage_pout = Var(m.time_periods, domain=NonPositiveReals)    #out
     m.h2_storage_level = Var(m.interval, domain=NonNegativeReals)
@@ -295,7 +302,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     '''Grid Node'''
 
     #Big M method to constraint direction can be two-ways at the same time
-    '''
+
     def constraint_rule_CP_grid(m, i):
         return m.grid_pin[i] <= m.is_grid_pin_active[i] * m.M  # M is a large constant
     m.con_grid_pin = Constraint(m.time_periods, rule=constraint_rule_CP_grid)
@@ -307,7 +314,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     def constraint_rule_CP_grid_one_flow(m, i):
         return m.is_grid_pin_active[i] + m.is_grid_pout_active[i] == 1
     m.con_grid_one_flow = Constraint(m.time_periods, rule=constraint_rule_CP_grid_one_flow)
-    '''
+
     #sell and buy constraint
     def constraint_rule_grid_buy_max(m, i):
         return  m.grid_pout[i]>=-m.maximum_power_integration
@@ -359,8 +366,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     # Output to hydrogen storage
     def constraint_rule_H2CP_H2storage(m, i):
-        return  m.H2CP_h2_storage[i]+ m.h2_storage_pin[i]+m.h2_storage_pout[i]==0
+        return  m.H2CP_h2_storage[i]+ m.h2_storage_pin[i]==0
     m.con_H2CP_H2storage= Constraint(m.time_periods, rule=constraint_rule_H2CP_H2storage)
+
 
     '''Hydrogen storage Node'''
     #Iteration strategy
@@ -379,21 +387,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     def constraint_rule_H2storage_capacity(m, i):
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
-
-    #Hydrogen storage flow constraint
-    def constraint_rule_storage_flow_pin(m, i):
-        return m.h2_storage_pin[i] <= m.is_storage_pin_active[i] * m.M  # M is a large constant
-    m.con_storage_flow_pin = Constraint(m.time_periods, rule=constraint_rule_storage_flow_pin)
-
-    def constraint_rule_storage_flow_pout(m, i):
-        return -m.h2_storage_pout[i] <= m.is_storage_pout_active[i] * m.M  # M is a large constant
-    m.con_storage_flow_pout = Constraint(m.time_periods, rule=constraint_rule_storage_flow_pout)
-
-    def constraint_rule_storage_flow(m, i):
-        return m.is_storage_pin_active[i] + m.is_storage_pout_active[i] == 1
-    m.con_storage_flow = Constraint(m.time_periods, rule=constraint_rule_storage_flow)
-
-
+    m.con_hydrogen_storage_t = Constraint(expr=m.h2_storage_capacity_t==m.h2_storage_capacity/1000)
 
     #Hydrogen storage type constraint:
     if hydrogen_storage_type=='Pipeline':
@@ -402,7 +396,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
         breakpoints = list(b)
         function_points = list(v)
-        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity,
+        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
                           pw_pts=breakpoints,
                           pw_constr_type='EQ',
                           f_rule=function_points,
@@ -413,7 +407,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
         breakpoints =list(b)
         function_points = list(v)
-        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity,
+        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
                               pw_pts=breakpoints,
                               pw_constr_type='EQ',
                               f_rule=function_points,
@@ -434,7 +428,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         m.load_constraint = Constraint(m.supply_periods, rule=load_constraint_rule)
 
     def constraint_rule_H2CP_H2demand(m, i):
-        return  m.H2CP_h2_demand[i]+ m.Load[i]==0
+        return  m.H2CP_h2_demand[i]+ m.Load[i]+m.h2_storage_pout[i]==0
     m.con_H2CP_H2demand= Constraint(m.time_periods, rule=constraint_rule_H2CP_H2demand)
 
     '''Indicators'''
@@ -453,7 +447,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
@@ -474,12 +468,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
-    solver.options['NodefileStart'] = 1e+6
     solver.options['NonConvex'] = 2
-    #solver.options['MIPFocus'] = 2
-    #solver.options['MIPGap'] = 1e-6  # Set the MIP gap tolerance to control the precision
-    solver.options['TuneResults'] = 1
-    #solver.options['FeasibilityTol'] = 1e-9
+    solver.options['presolve'] = True
+    solver.options['tol'] = 1e-6
     results = solver.solve(m)
 
     '''Result printout'''
@@ -504,7 +495,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         comp_pin = list()
         h2_storage_pin = list()
         h2_storage_pout = list()
-        Direct_pipeline_supply=list()
         H2CP_h2_storage=list()
         h2_storage_level = list()
         price = list()
@@ -530,9 +520,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             comp_pin.append(value(m.comp_pin[Time]))
             h2_storage_pin.append(value(m.h2_storage_pin[Time]))
             h2_storage_pout.append(value(m.h2_storage_pout[Time]))
-            h2_storage_level.append(value(m.h2_storage_level[Time]))
-            Direct_pipeline_supply.append(value(m.H2CP_h2_demand[Time])-value(m.h2_storage_pout[Time]))
             H2CP_h2_storage.append(value(m.H2CP_h2_storage[Time]))
+            h2_storage_level.append(value(m.h2_storage_level[Time]))
             price.append(value(m.price[Time]))
             MEF_CO2.append(value(m.MEF_CO2[Time]))
             AEF_CO2.append(value(m.AEF_CO2[Time]))
@@ -555,8 +544,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
                 'comp_pin': comp_pin,
                 'h2_storage_pin': h2_storage_pin,
                 'h2_storage_pout': h2_storage_pout,
+                'H2CP_h2_storage':H2CP_h2_storage,
                 'h2_storage_level': h2_storage_level,
-                'Direct_pipeline_pout': Direct_pipeline_supply,
                 'price': price,
                 'MEF_CO2': MEF_CO2,
                 'AEF_CO2': AEF_CO2,
@@ -565,20 +554,30 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
                 }
         # Create a DataFrame
         df = pd.DataFrame(data)
+        if hydrogen_storage_type == 'Lined Rock':
+            df['Direct_pipeline_supply'] = df['Load']+df['h2_storage_pout']
+        else: #pipeline
+            df['Direct_pipeline_supply'] = np.where(df['h2_storage_pin']+df['h2_storage_pout']>=0, df['Load'], df['Load']+(df['h2_storage_pin']+df['h2_storage_pout']))
+
         df['Time'] = Spotprice(2021, 'QLD1', 60)['Time']
 
         #Test the flow direction
-        if (df['h2_storage_pout']*df['h2_storage_pin']).sum()==0:
-            print('Hydrogen Storage Interaction Flow is Correct')
-        else:
-            print('Hydrogen Storage Interaction Flow is Incorrect')
-            return None, None
+        '''
+        if hydrogen_storage_type == 'Lined Rock':
+            if (df['h2_storage_pout']*df['h2_storage_pin']).sum()==0:
+                print('Hydrogen Storage Interaction Flow is Correct')
 
+            else:
+                print('Hydrogen Storage Interaction Flow is Incorrect')
+                sys.exit()
+
+        '''
         if (df['grid_pout']*df['grid_pin']).sum()==0:
             print('Grid Flow Interaction is Correct')
         else:
             print('Grid Flow Interaction is Incorrect')
-            return None, None
+            sys.exit()
+
 
 
         '''Save key indicators:'''
