@@ -74,7 +74,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
     m.c_el = Param(initialize=1343.3)  # CAPEX of electrolyser
     c_bat_e, c_bat_p = c_bat_cost(c_bat_class)
-    print("Battery storage class is ", c_bat_class)
+
     m.c_bat_e = Param(initialize=c_bat_e)  # Unit cost of battery storage USD/kWh
     m.c_bat_p = Param(initialize=c_bat_p)  # Unit cost of battery power capacity USD/kW
 
@@ -134,8 +134,16 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         m.pv_capacity=Var(domain=NonNegativeReals)
         m.wind_capacity=Var(domain=NonNegativeReals)
         m.electrolyser_capacity=Var(domain=NonNegativeReals)
-        m.bat_e_capacity = Var(domain=NonNegativeReals)
-        m.bat_p_capacity = Var(domain=NonNegativeReals)
+
+        bat=0
+        if bat==0:
+            print('No battery is taken into account')
+            m.bat_e_capacity = Param(initialize=0)
+            m.bat_p_capacity = Param(initialize=0)
+        else:
+            print("Battery storage class is ", c_bat_class)
+            m.bat_e_capacity = Var(domain=NonNegativeReals)
+            m.bat_p_capacity = Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
         cross_point = 21.74214531
@@ -145,7 +153,6 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         cross_point = 21.74214531
         m.h2_storage_capacity = Var(domain=NonNegativeReals)
         m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(cross_point, hydrogen_storage_bound))
-
 
     #Fixed capacity
     #input the off-grid optimized results:
@@ -158,7 +165,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     if opt == 0:
         m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
         m.wind_capacity = Param(initialize=Opt_off_grid.loc[0, 'wind_capacity'] * ratio)
-        m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'])
+        #m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'])
         m.electrolyser_capacity = Param(initialize=Opt_off_grid.loc[0, 'electrolyser_capacity'])  # 175kw
     if grid == 1:
         m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
