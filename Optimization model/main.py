@@ -107,7 +107,7 @@ for y in [2021]:
         Location = L
         for j in ['Lined Rock']:
             Hydrogen_storage_type=j
-            for i in ["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']:
+            for i in ["AAA"]:
                 battery_class=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Opt=Opt,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
@@ -118,7 +118,8 @@ for y in [2021]:
                                                      bat_class=battery_class)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-
+df.to_csv('test.csv')
+operation_result.to_csv('test_operation')
 print(df)
 
 

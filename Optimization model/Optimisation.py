@@ -169,8 +169,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     #PV and wind node:
     m.pv_pout = Var(m.time_periods, domain=NonPositiveReals)  #power out of PV plant (kW)
     m.wind_pout = Var(m.time_periods, domain=NonPositiveReals)  #power out of wind farm (kW)
-    m.curtail_wind = Var(m.time_periods, within=NonPositiveReals)  #curtailed power (kW)
-    m.curtail_solar = Var(m.time_periods, within=NonPositiveReals)  #curtailed power (kW)
+    m.CP_curtailment = Var(m.time_periods, within=NonPositiveReals)  #curtailed power (kW)
 
     # Battery node
     m.bat_pin = Var(m.time_periods, domain=NonNegativeReals)  # power in of battery plant (kW)
@@ -219,11 +218,11 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     '''Wind and PV generation''' # excess energy will be curtailed
     def constraint_rule_pv(m, i):
-        return  m.pv_pout[i]+ m.curtail_solar[i]==-1*m.pv_capacity/m.pv_ref_size*m.pv_ref_generation[i]
+        return  m.pv_pout[i]==-1*m.pv_capacity/m.pv_ref_size*m.pv_ref_generation[i]
     m.con_pv= Constraint(m.time_periods, rule=constraint_rule_pv)
 
     def constraint_rule_wind(m, i):
-        return  m.wind_pout[i]+ m.curtail_wind[i]==-1*m.wind_capacity/m.wind_ref_size*m.wind_ref_generation[i]
+        return  m.wind_pout[i]==-1*m.wind_capacity/m.wind_ref_size*m.wind_ref_generation[i]
     m.con_wind = Constraint(m.time_periods, rule=constraint_rule_wind)
 
     '''Electricity connection point'''
@@ -258,7 +257,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     '''Flow balance in electricity connection point'''
 
     def constraint_rule_CP(m, i):
-        return m.CP_el[i] + m.CP_pv[i] + m.CP_wind[i] + m.CP_grid_out[i] + m.CP_grid_in[i] + m.CP_comp[i] + m.CP_bat[i] == 0
+        return m.CP_el[i] + m.CP_pv[i] + m.CP_wind[i] + m.CP_grid_out[i] + m.CP_grid_in[i] + m.CP_comp[i] + m.CP_bat[i]+m.CP_curtailment[i] == 0
     m.con_CP = Constraint(m.time_periods, rule=constraint_rule_CP)
 
     '''Compressor'''
@@ -359,7 +358,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)
         # Piecewise function to calculate the cost
-        b, v = piecewise_function(hydrogen_storage_bound, 30, hydrogen_storage_type)  # lower bound is the cross point
+        b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
         breakpoints = list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
@@ -370,7 +369,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print('Hydrogen storage type is',hydrogen_storage_type)
         #Piecewise function to calculate the cost
-        b,v=piecewise_function(hydrogen_storage_bound,30,hydrogen_storage_type)  #lower bound is the cross point
+        b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
         breakpoints =list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
@@ -496,8 +495,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         CP_bat = list()
         pv_pout = list()
         wind_pout = list()
-        curtail_wind = list()
-        curtail_solar = list()
+        curtailment= list()
         el_pin = list()
         el_pout = list()
         comp_pin = list()
@@ -521,8 +519,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
             grid_pin.append(value(m.grid_pin[Time]))
             pv_pout.append(value(m.pv_pout[Time]))
             wind_pout.append(value(m.wind_pout[Time]))
-            curtail_wind.append(value(m.curtail_wind[Time]))
-            curtail_solar.append(value(m.curtail_solar[Time]))
+            curtailment.append(value(m.CP_curtailment[Time]))
             CP_wind.append(value(m.CP_wind[Time]))
             CP_pv.append(value(m.CP_pv[Time]))
             CP_el.append(value(m.CP_el[Time]))
@@ -549,8 +546,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
                 'grid_pin': grid_pin,
                 'pv_pout': pv_pout,
                 'wind_pout': wind_pout,
-                'curtail_wind': curtail_wind,
-                'curtail_solar': curtail_solar,
+                'curtailment': curtailment,
                 'CP_wind': CP_wind,
                 'CP_pv': CP_pv,
                 'CP_el': CP_el,
@@ -603,9 +599,9 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         production_amount = sum(df['Load'])
         purchase_amount = sum(df['grid_pout'])
         sell_amount = sum(df['grid_pin'])
-        curtail = sum(df['curtail_wind'] + df['curtail_solar'])
-        RE_generation = sum(df['CP_wind'] + df['CP_pv'])
-        Supply_proportion = (RE_generation - sell_amount) / sum(df['el_pin'] + df['comp_pin'])  # which shows the power supply comes from which source
+        Curtailment=sum(df['curtailment'])
+        RE_generation = sum(df['CP_wind'] + df['CP_pv'])+Curtailment
+        Supply_proportion = (sum(df['el_pin'] + df['comp_pin']) - sell_amount) / sum(df['el_pin'] + df['comp_pin'])  # which shows the power supply comes from which source
         LCOH = (value(m.LCOH)) / production_amount + value(m.el_VOM)
 
 
@@ -674,7 +670,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
             'EI_L': EI_location_based_method,
             'Sell_amount': sell_amount,
             'Purchase_amount': purchase_amount,
-            'Curtailment': curtail,
+            'Curtailment': Curtailment,
             'LGCs': LGCs,
             'battery class':c_bat_class,
             'battery_energy_capacity':battery_energy_capacity,
