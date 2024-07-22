@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_interval,
               comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound,c_bat_class):
-    print('Daily Operation')
+    print('Operation')
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -112,10 +112,11 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.production_amount=Var()
 
 
-    #load and total production amount
+    #load and hydrogen reservoir total production amount
     m.Load=Var(m.time_periods, domain=NonNegativeReals)
-
+    m.res=Var(m.time_periods, domain=NonPositiveReals)
     #check whether the flow can be active or not using Big M method
+    m.sell_active = Var(m.time_periods, within=Binary)           #check whether electricity can be sold
     m.is_grid_pin_active = Var(m.time_periods, within=Binary)
     m.is_grid_pout_active = Var(m.time_periods, within=Binary)
     m.M=Param(initialize=1e7)
@@ -130,29 +131,28 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
+    bat = 0
+    if bat == 0:
+        print('No battery is taken into account')
+        m.bat_e_capacity = Param(initialize=0)
+        m.bat_p_capacity = Param(initialize=0)
+    else:
+        print("Battery storage class is ", c_bat_class)
+        m.bat_e_capacity = Var(domain=NonNegativeReals)
+        m.bat_p_capacity = Var(domain=NonNegativeReals)
     if opt==1:
         m.pv_capacity=Var(domain=NonNegativeReals)
         m.wind_capacity=Var(domain=NonNegativeReals)
         m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
-        bat=0
-        if bat==0:
-            print('No battery is taken into account')
-            m.bat_e_capacity = Param(initialize=0)
-            m.bat_p_capacity = Param(initialize=0)
+        if hydrogen_storage_type=='Pipeline':
+            cross_point = 21.74214531
+            m.h2_storage_capacity=Var(domain=NonNegativeReals)
+            m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(0, cross_point))
         else:
-            print("Battery storage class is ", c_bat_class)
-            m.bat_e_capacity = Var(domain=NonNegativeReals)
-            m.bat_p_capacity = Var(domain=NonNegativeReals)
-
-    if hydrogen_storage_type=='Pipeline':
-        cross_point = 21.74214531
-        m.h2_storage_capacity=Var(domain=NonNegativeReals)
-        m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(0, cross_point))
-    else:
-        cross_point = 21.74214531
-        m.h2_storage_capacity = Var(domain=NonNegativeReals)
-        m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(cross_point, hydrogen_storage_bound))
+            cross_point = 21.74214531
+            m.h2_storage_capacity = Var(domain=NonNegativeReals)
+            m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(cross_point, hydrogen_storage_bound))
 
     #Fixed capacity
     #input the off-grid optimized results:
@@ -165,7 +165,9 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     if opt == 0:
         m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
         m.wind_capacity = Param(initialize=Opt_off_grid.loc[0, 'wind_capacity'] * ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'])
+        m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'])
+        m.h2_storage_capacity_t=Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity']/1000)
+        h2_storage=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'] / 1000
         m.electrolyser_capacity = Param(initialize=Opt_off_grid.loc[0, 'electrolyser_capacity'])  # 175kw
     if grid == 1:
         m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
@@ -359,31 +361,35 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     def constraint_rule_H2storage_capacity(m, i):
         return  m.h2_storage_level[i]<=m.h2_storage_capacity
     m.con_H2storage_capacity= Constraint(m.time_periods, rule=constraint_rule_H2storage_capacity)
-    m.con_hydrogen_storage_t = Constraint(expr=m.h2_storage_capacity_t==m.h2_storage_capacity/1000)
+
 
     #Hydrogen storage type constraint:
-    if hydrogen_storage_type=='Pipeline':
-        print('Hydrogen storage type is',hydrogen_storage_type)
-        # Piecewise function to calculate the cost
-        b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
-        breakpoints = list(b)
-        function_points = list(v)
-        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
-                          pw_pts=breakpoints,
-                          pw_constr_type='EQ',
-                          f_rule=function_points,
-                          pw_repn='INC')
-    if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
-        print('Hydrogen storage type is',hydrogen_storage_type)
-        #Piecewise function to calculate the cost
-        b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
-        breakpoints =list(b)
-        function_points = list(v)
-        m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
+    if opt==1:
+        if hydrogen_storage_type=='Pipeline':
+            print('Hydrogen storage type is',hydrogen_storage_type)
+            # Piecewise function to calculate the cost
+            b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
+            breakpoints = list(b)
+            function_points = list(v)
+            m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
                               pw_pts=breakpoints,
                               pw_constr_type='EQ',
                               f_rule=function_points,
                               pw_repn='INC')
+        if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
+            print('Hydrogen storage type is',hydrogen_storage_type)
+            #Piecewise function to calculate the cost
+            b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
+            breakpoints =list(b)
+            function_points = list(v)
+            m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
+                                  pw_pts=breakpoints,
+                                  pw_constr_type='EQ',
+                                  f_rule=function_points,
+                                  pw_repn='INC')
+    else:
+        m.con_hydrogen_storage_cost=Constraint(expr=m.c_hydrogen_storage== 10 ** (0.217956 * np.log10(h2_storage) ** 2 - 1.575209 * np.log10(h2_storage) + 4.463930))
+
 
     #Initial level=End level
     m.con_hydrogen_storage = Constraint(expr=m.h2_storage_level[end_index] == m.initial_h2_storage_value)
@@ -458,8 +464,21 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
+
+    '''Operation strategy'''
+    def operation_rule_first_charge_el_1 (m,i):
+        return m.CP_wind[i] + m.CP_pv[i] >= m.electrolyser_capacity - m.M * (1 - m.sell_active[i])
+    m.con_operation_rule_first_charge_el_1 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_1)
+
+    def operation_rule_first_charge_el_2 (m,i):
+        return m.CP_wind[i] + m.CP_pv[i] <= m.electrolyser_capacity +m.M * m.sell_active[i]
+    m.con_operation_rule_first_charge_el_2 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_2)
+
+    def operation_rule_first_charge_el_3(m, i):
+        return m.is_grid_pin_active[i] - m.sell_active[i] == 0  # if the supply amount is not enough then shut down the grid_in path
+    m.com_operation_rule_first_charge_el_3 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_3)
 
 
     # LCOH and capex
