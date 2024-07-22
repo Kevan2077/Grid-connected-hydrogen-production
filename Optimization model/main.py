@@ -23,7 +23,8 @@ def main(Year,
          Batch_interval,
          storage_type,
          Hydrogen_load_flow,
-         Hydrogen_storage_bound):
+         Hydrogen_storage_bound,
+         bat_class):
     df=pd.DataFrame()
     opt1=pd.DataFrame()
     opt2 = pd.DataFrame()
@@ -40,7 +41,8 @@ def main(Year,
                                                  comp2_conversion=Comp2_conversion(Hydrogen_storage_type),
                                                  hydrogen_storage_type=Hydrogen_storage_type,
                                                  hydrogen_load_flow=Hydrogen_load_flow,
-                                                 hydrogen_storage_bound=Hydrogen_storage_bound)
+                                                 hydrogen_storage_bound=Hydrogen_storage_bound,
+                                                 c_bat_class=bat_class)
 
             if key_indicators is not None:
                 print(key_indicators)
@@ -72,12 +74,10 @@ def main(Year,
                                                      comp2_conversion=Comp2_conversion(Hydrogen_storage_type),
                                                      hydrogen_storage_type=Hydrogen_storage_type,
                                                      hydrogen_load_flow=Hydrogen_load_flow,
-                                                     hydrogen_storage_bound=Hydrogen_storage_bound)
+                                                     hydrogen_storage_bound=Hydrogen_storage_bound,
+                                                     c_bat_class=bat_class)
         #return all the results given various hydrogen storage options
         return key_indicators,operation_result
-
-
-
 
 
 
@@ -89,54 +89,37 @@ Grid=0
 Step=60
 Num_interval=0
 Ratio=1
-SO=1
-Batch_interval=24
+SO=0
+Batch_interval=1
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
-storage_bound=100    #tonnes
+storage_bound=120    #tonnes
+battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
 
 df = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
+    for L in ['QLD1','TAS1','SA1']:
         Location = L
-        for j in ['All']:
+        for j in ['Lined Rock']:
             Hydrogen_storage_type=j
-            #for i in [0,1,24,720,8760]:
-            #    Num_interval=i
-            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
-                                                     Num_interval=Num_interval,Ratio=Ratio,
-                                                     SO=SO,Batch_interval=Batch_interval,
-                                                     storage_type=Hydrogen_storage_type,
-                                                     Hydrogen_load_flow=load,
-                                                     Hydrogen_storage_bound=storage_bound)
-            df = pd.concat([df, key_indicators], ignore_index=True)
-            print(df)
-                #operation_result.to_csv(f'Result\\QLD system operation tracking (off-grid) {i} in {L} ({j}).csv')
-df.to_csv(f'Result\\new off-grid result.csv')
-print(df)
-
-
-Grid=1
-for y in [2021]:
-    Year=y
-    for L in ['QLD1','TAS1','SA1','NSW1','VIC1']:
-        Location = L
-        for j in ['All']:
-            Hydrogen_storage_type=j
-            for i in [0,1,24,720,8760]:
-                Num_interval=i
+            for i in ["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']:
+                battery_class=i
                 key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
                                                      SO=SO,Batch_interval=Batch_interval,
                                                      storage_type=Hydrogen_storage_type,
                                                      Hydrogen_load_flow=load,
-                                                     Hydrogen_storage_bound=storage_bound)
+                                                     Hydrogen_storage_bound=storage_bound,
+                                                     bat_class=battery_class)
                 df = pd.concat([df, key_indicators], ignore_index=True)
                 print(df)
-                #operation_result.to_csv(f'Result\\QLD system operation tracking (off-grid) {i} in {L} ({j}).csv')
-df.to_csv(f'Result\\new on-grid SO.csv')
+            #operation_result.to_csv('battery_test.csv')
+
+df.to_csv('battery_test_result.csv')
 print(df)
+
+
 
 
 

@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
-              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound):
+              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound, c_bat_class):
 
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
@@ -67,12 +67,17 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     cumulative_supply = np.cumsum(supply_periods) #obtain the time point of last hour in each calendar month
 
     '''initial value of cost, unit: USD'''
-
+ 
     m.c_hydrogen_storage = Var() #piecewise function to determine cost based on its size
-
     m.c_pv = Param(initialize=1068.2)  # CAPEX of pv
     m.c_wind = Param(initialize=2126.6)  # CAPEX of wind
     m.c_el = Param(initialize=1343.3)  # CAPEX of electrolyser
+
+    c_bat_e,c_bat_p=c_bat_cost(c_bat_class)
+    print("Battery storage class is ",c_bat_class)
+    m.c_bat_e=Param(initialize=c_bat_e)   #  Unit cost of battery storage USD/kWh
+    m.c_bat_p = Param(initialize=c_bat_p)  # Unit cost of battery power capacity USD/kW
+
 
     m.CRF = Param(initialize=0.07822671821)
     m.pv_FOM = Param(initialize=11.9)
@@ -128,6 +133,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #Variable capacity
     m.pv_capacity=Var(domain=NonNegativeReals)
     m.wind_capacity=Var(domain=NonNegativeReals)
+    m.bat_e_capacity=Var(domain=NonNegativeReals)
+    m.bat_p_capacity = Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
         cross_point = 21.74214531
@@ -211,6 +218,12 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.curtail_wind = Var(m.time_periods, within=NonPositiveReals)  #curtailed power (kW)
     m.curtail_solar = Var(m.time_periods, within=NonPositiveReals)  #curtailed power (kW)
 
+    # Battery node
+    m.bat_pin = Var(m.time_periods, domain=NonNegativeReals)  # power in of battery plant (kW)
+    m.bat_pout=Var(m.time_periods, domain=NonPositiveReals)  # power out of battery plant (kW)
+    m.bat_e = Var(m.interval, domain=NonNegativeReals)
+    m.initial_bat_e = Var(domain=NonNegativeReals)
+
     #Electricity Connection Point
     m.CP_wind = Var(m.time_periods, domain=NonNegativeReals)
     m.CP_pv= Var(m.time_periods, domain=NonNegativeReals)
@@ -218,6 +231,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.CP_grid_out= Var(m.time_periods, domain=NonPositiveReals)
     m.CP_grid_in= Var(m.time_periods, domain=NonNegativeReals)
     m.CP_comp=Var(m.time_periods, domain=NonPositiveReals)
+    m.CP_bat=Var(m.time_periods, domain=Reals) #can either discharge or charge
 
     #Compressor node:
     m.comp_pin=Var(m.time_periods, domain=NonNegativeReals)
@@ -241,7 +255,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.H2CP_h2_demand= Var(m.time_periods, domain=NonPositiveReals)       #out
 
     # H2 storage node:
-
     m.h2_storage_pin = Var(m.time_periods, domain=NonNegativeReals)     #into
     m.h2_storage_pout = Var(m.time_periods, domain=NonPositiveReals)    #out
     m.h2_storage_level = Var(m.interval, domain=NonNegativeReals)
@@ -291,7 +304,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     '''Flow balance in electricity connection point'''
     def constraint_rule_CP(m, i):
-        return  m.CP_el[i]+m.CP_pv[i]+m.CP_wind[i]+m.CP_grid_out[i]+m.CP_grid_in[i]+m.CP_comp[i]==0
+        return  m.CP_el[i]+m.CP_pv[i]+m.CP_wind[i]+m.CP_grid_out[i]+m.CP_grid_in[i]+m.CP_comp[i]+m.CP_bat[i]==0
     m.con_CP = Constraint(m.time_periods, rule=constraint_rule_CP)
 
     '''Compressor'''
@@ -369,7 +382,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         return  m.H2CP_h2_storage[i]+ m.h2_storage_pin[i]==0
     m.con_H2CP_H2storage= Constraint(m.time_periods, rule=constraint_rule_H2CP_H2storage)
 
-
     '''Hydrogen storage Node'''
     #Iteration strategy
     def constraint_rule_H2storage(m, i):
@@ -415,6 +427,42 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
 
     #Initial level=End level
     m.con_hydrogen_storage = Constraint(expr=m.h2_storage_level[end_index] == m.initial_h2_storage_value)
+
+    '''Battery node'''
+    # Output to battery
+    def constraint_rule_CP_battery(m, i):
+        return  m.bat_pin[i]+m.bat_pout[i]+ m.CP_bat[i]==0        # charge and discharge efficiency is 90%
+    m.con_CP_battery= Constraint(m.time_periods, rule=constraint_rule_CP_battery)
+
+    #Iteration strategy for battery
+    def constraint_rule_battery(m, i):
+        if i == 0:
+            return m.bat_e[i] == m.initial_bat_e+m.bat_pin[i]*0.9+m.bat_pout[i]/0.9
+        else:
+            return m.bat_e[i] == m.bat_e[i - 1]+m.bat_pin[i]*0.9+m.bat_pout[i]/0.9
+    m.con_battery_level = Constraint(m.time_periods, rule=constraint_rule_battery)
+
+    #Initial level=End level for battery
+    m.con_battery = Constraint(expr=m.bat_e[end_index] == m.initial_bat_e)
+
+    def constraint_rule_battery_level(m,i):
+        return  m.bat_e[i]>=0
+    m.con_battery_level1= Constraint(m.time_periods, rule=constraint_rule_battery_level)
+
+    #capacity constraint of battery
+    def constraint_rule_battery_energy_capacity(m, i):
+        return  m.bat_e[i]<=m.bat_e_capacity
+    m.con_battery_energy_capacity= Constraint(m.time_periods, rule=constraint_rule_battery_energy_capacity)
+
+    def constraint_rule_battery_power_capacity_pos(m, i):
+        return  m.bat_pin[i]<=m.bat_p_capacity
+    m.con_battery_power_capacity_pos= Constraint(m.time_periods, rule=constraint_rule_battery_power_capacity_pos)
+
+    def constraint_rule_battery_power_capacity_neg(m, i):
+        return  m.bat_pout[i]>=-m.bat_p_capacity
+    m.con_battery_power_capacity_neg= Constraint(m.time_periods, rule=constraint_rule_battery_power_capacity_neg)
+
+
     '''Load node'''
     m.con_production=Constraint(expr=sum(m.Load[i] for i in m.time_periods)==m.production_amount)
 
@@ -455,7 +503,8 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     m.con_capex=Constraint(expr=m.capex==m.c_pv*m.pv_capacity+
                       m.c_wind*m.wind_capacity+
                       m.c_el*m.electrolyser_capacity+
-                      m.c_hydrogen_storage*m.h2_storage_capacity)
+                      m.c_hydrogen_storage*m.h2_storage_capacity+
+                     m.c_bat_e*m.bat_e_capacity+m.c_bat_p*m.bat_p_capacity)
 
     def LCOH_constraint(m,i):
         return m.LCOH == (
@@ -486,6 +535,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         CP_wind = list()
         CP_pv = list()
         CP_el = list()
+        CP_bat=list()
         pv_pout = list()
         wind_pout = list()
         curtail_wind = list()
@@ -493,6 +543,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         el_pin = list()
         el_pout = list()
         comp_pin = list()
+        bat_pin=list()
+        bat_pout = list()
+        bat_e=list()
         h2_storage_pin = list()
         h2_storage_pout = list()
         H2CP_h2_storage=list()
@@ -515,9 +568,13 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             CP_wind.append(value(m.CP_wind[Time]))
             CP_pv.append(value(m.CP_pv[Time]))
             CP_el.append(value(m.CP_el[Time]))
+            CP_bat.append(value(m.CP_bat[Time]))
             el_pin.append(value(m.el_pin[Time]))
             el_pout.append(value(m.el_pout[Time]))
             comp_pin.append(value(m.comp_pin[Time]))
+            bat_pin.append(value(m.bat_pin[Time]))
+            bat_pout.append(value(m.bat_pout[Time]))
+            bat_e.append(value(m.bat_e[Time]))
             h2_storage_pin.append(value(m.h2_storage_pin[Time]))
             h2_storage_pout.append(value(m.h2_storage_pout[Time]))
             H2CP_h2_storage.append(value(m.H2CP_h2_storage[Time]))
@@ -539,9 +596,13 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
                 'CP_wind': CP_wind,
                 'CP_pv': CP_pv,
                 'CP_el': CP_el,
+                'CP_bat':CP_bat,
                 'el_pin': el_pin,
                 'el_pout': el_pout,
                 'comp_pin': comp_pin,
+                'bat_pin':bat_pin,
+                'bat_pout':bat_pout,
+                'bat_e':bat_e,
                 'h2_storage_pin': h2_storage_pin,
                 'h2_storage_pout': h2_storage_pout,
                 'H2CP_h2_storage':H2CP_h2_storage,
@@ -612,12 +673,15 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         MEF_carbon_emissions = sum(df['MEF_CO2']) / value(m.production_amount)
         AEF_carbon_emissions = sum(df['AEF_CO2']) / value(m.production_amount)
         h2_initial_storage_level = value(m.initial_h2_storage_value)
+        battery_energy_capacity=value(m.bat_e_capacity)
+        battery_power_capacity = value(m.bat_p_capacity)
         wind_capacity = value(m.wind_capacity)
         pv_capacity = value(m.pv_capacity)
         electrolyser_capacity = value(m.electrolyser_capacity)
         hydrogen_storage_capacity = value(m.h2_storage_capacity)
         maximum_power_integration = value(m.maximum_power_integration)
         Full_load_hours = sum(df['el_pin']) / value(m.electrolyser_capacity)
+
         print("Simultaneity_obligation_interval:", num_interval)
         print("LCOH:", LCOH)
         print("Capex:", capex)
@@ -630,7 +694,12 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         print("EI_market:", market_based_emission)
         print("H2_initial_storage_level:", value(m.initial_h2_storage_value),
               "\nH2_final_storage_level:", value(m.h2_storage_level[end_index]))
+        print("Battery_initial_level:", value(m.initial_bat_e),
+              "\nBattery_final_level:", value(m.bat_e[end_index]))
         print("Unit Capex of Hydrogen storage is", value(m.c_hydrogen_storage))
+        print("Battery type:", c_bat_class)
+        print("c_bat_e:",value(m.c_bat_e))
+        print("c_bat_p:",value(m.c_bat_p))
 
         # Create a dictionary with key indicators
         indicators = {
@@ -649,6 +718,9 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
             'Purchase_amount': purchase_amount,
             'Curtailment': curtail,
             'LGCs': LGCs,
+            'battery class':c_bat_class,
+            'battery_energy_capacity':battery_energy_capacity,
+            'battery_power_capacity':battery_power_capacity,
             'wind_capacity': wind_capacity,
             'pv_capacity': pv_capacity,
             'electrolyser_capacity': electrolyser_capacity,
