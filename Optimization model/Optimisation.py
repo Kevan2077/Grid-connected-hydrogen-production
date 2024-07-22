@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 
 
 ''' Initialize the optimisation model '''
-def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
+def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_interval,
               comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound):
 
     #data import
@@ -114,7 +114,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     #check whether the flow can be active or not using Big M method
     m.is_grid_pin_active = Var(m.time_periods, within=Binary)
     m.is_grid_pout_active = Var(m.time_periods, within=Binary)
-    m.M=Param(initialize=1e10)
+    m.M=Param(initialize=1e7)
 
     #Transmission cost may varied according to the maximum power integration scale
     if grid==1:
@@ -126,8 +126,10 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    m.pv_capacity=Var(domain=NonNegativeReals)
-    m.wind_capacity=Var(domain=NonNegativeReals)
+    if opt==1:
+        m.pv_capacity=Var(domain=NonNegativeReals)
+        m.wind_capacity=Var(domain=NonNegativeReals)
+        m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     if hydrogen_storage_type=='Pipeline':
         cross_point = 21.74214531
@@ -137,7 +139,6 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
         cross_point = 21.74214531
         m.h2_storage_capacity = Var(domain=NonNegativeReals)
         m.h2_storage_capacity_t=Var(domain=NonNegativeReals,bounds=(cross_point, hydrogen_storage_bound))
-    m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
     #Fixed capacity
     #input the off-grid optimized results:
@@ -145,63 +146,16 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     file_name='D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Result\Hourly supply period\off-grid result.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
+    Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
+    if opt==0:
+        m.pv_capacity=Param(initialize=Opt_off_grid.loc[0, 'pv_capacity']*ratio)
+        m.wind_capacity=Param(initialize=Opt_off_grid.loc[0,'wind_capacity']*ratio)
+        m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0,'hydrogen_storage_capacity'])
+        m.electrolyser_capacity = Param(initialize=Opt_off_grid.loc[0,'electrolyser_capacity'])         #175kw
+    if grid == 1:
+        m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
 
-    Opt_QLD = off_grid_result[off_grid_result['Location'] == 'QLD1'].reset_index(drop=True)
-    Opt_TAS = off_grid_result[off_grid_result['Location'] == 'TAS1'].reset_index(drop=True)
-    Opt_SA = off_grid_result[off_grid_result['Location'] == 'SA1'].reset_index(drop=True)
-    Opt_VIC = off_grid_result[off_grid_result['Location'] == 'VIC1'].reset_index(drop=True)
-    Opt_NSW = off_grid_result[off_grid_result['Location'] == 'NSW1'].reset_index(drop=True)
-
-    if location=='QLD1':
-        print('Location: QLD')
-        #m.pv_capacity=Param(initialize=Opt_QLD.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_QLD.loc[0,'wind_capacity']*ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_QLD.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_QLD.loc[0,'electrolyser_capacity'])         #175kw
-
-        if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_QLD.loc[0, 'Capex'])
-
-    if location=='TAS1':
-        print('Location: TAS')
-        #m.pv_capacity=Param(initialize=Opt_TAS.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_TAS.loc[0,'wind_capacity']*ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_TAS.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_TAS.loc[0,'electrolyser_capacity'])
-
-        if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_TAS.loc[0, 'Capex'])
-
-    if location=='SA1':
-        print('Location: SA')
-        #m.pv_capacity=Param(initialize=Opt_SA.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_SA.loc[0,'wind_capacity']*ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_SA.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_SA.loc[0,'electrolyser_capacity'])         #175kw
-
-        if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_SA.loc[0, 'Capex'])
-
-
-    if location=='VIC1':
-        print('Location: VIC')
-        #m.pv_capacity=Param(initialize=Opt_VIC.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_VIC.loc[0,'wind_capacity']*ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_VIC.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_VIC.loc[0,'electrolyser_capacity'])
-
-        if grid == 1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_VIC.loc[0, 'Capex'])
-
-    if location=='NSW1':
-        print('Location: NSW')
-        #m.pv_capacity=Param(initialize=Opt_NSW.loc[0, 'pv_capacity']*ratio)
-        #m.wind_capacity=Param(initialize=Opt_NSW.loc[0,'wind_capacity']*ratio)
-        #m.h2_storage_capacity = Param(initialize=Opt_NSW.loc[0,'hydrogen_storage_capacity'])
-        #m.electrolyser_capacity = Param(initialize=Opt_NSW.loc[0,'electrolyser_capacity'])
-
-        if grid==1:
-            m.capex_limit = Constraint(expr=m.capex <= Opt_NSW.loc[0, 'Capex'])
+    print(f'Location: {location}')
 
     '''Flow variables'''
 
@@ -393,7 +347,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)
         # Piecewise function to calculate the cost
-        b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
+        b, v = piecewise_function(hydrogen_storage_bound, 30, hydrogen_storage_type)  # lower bound is the cross point
         breakpoints = list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
@@ -404,7 +358,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print('Hydrogen storage type is',hydrogen_storage_type)
         #Piecewise function to calculate the cost
-        b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
+        b,v=piecewise_function(hydrogen_storage_bound,30,hydrogen_storage_type)  #lower bound is the cross point
         breakpoints =list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
@@ -470,7 +424,7 @@ def optimiser(year, location, grid, step, num_interval,ratio,SO, batch_interval,
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
     solver.options['NonConvex'] = 2
     solver.options['presolve'] = True
-    solver.options['tol'] = 1e-6
+    solver.options['OptimalTol'] = 1e-5
     results = solver.solve(m)
 
     '''Result printout'''
