@@ -212,3 +212,19 @@ def piecewise_function(upper_bound, insert_point,hydrogen_storage_type):
         cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
 
         return LRC_range, cost
+
+
+def c_bat_cost(cost_class):
+    c_bat= {
+        "Cost Class": ["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050'],
+        "c_bat_e": [20, 40, 58, 73, 86, 101, 116,197,164,131],
+        "c_bat_p": [217, 441, 658, 822, 987, 1152, 1316,405,338,270]
+    }
+
+    c_bat = pd.DataFrame(c_bat)
+
+    # Get the row corresponding to the cost class
+    result = c_bat[c_bat["Cost Class"] == cost_class]
+    c_bat_e=result['c_bat_e'].values[0]
+    c_bat_p=result['c_bat_p'].values[0]
+    return c_bat_e,c_bat_p
