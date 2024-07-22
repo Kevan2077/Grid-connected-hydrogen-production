@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_interval,
               comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound,c_bat_class):
-
+    print('Daily Operation')
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
