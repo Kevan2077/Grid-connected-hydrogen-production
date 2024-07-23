@@ -121,6 +121,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.is_grid_pout_active = Var(m.time_periods, within=Binary)
     m.M=Param(initialize=1e7)
 
+
     #Transmission cost may varied according to the maximum power integration scale
     if grid==1:
         print("On-Grid")
@@ -157,7 +158,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     #Fixed capacity
     #input the off-grid optimized results:
     #file_name='Optimization model\\Result\\Hourly supply periods\\'+'off-grid result'+'.csv'
-    file_name='D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Result\Hourly supply period\off-grid result.csv'
+    file_name='Result\\Hourly supply period\\off-grid result.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
@@ -365,6 +366,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     #Hydrogen storage type constraint:
     if opt==1:
+        m.con_hydrogen_storage_t = Constraint(expr=m.h2_storage_capacity_t == m.h2_storage_capacity / 1000)
         if hydrogen_storage_type=='Pipeline':
             print('Hydrogen storage type is',hydrogen_storage_type)
             # Piecewise function to calculate the cost
@@ -386,7 +388,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
                                   pw_pts=breakpoints,
                                   pw_constr_type='EQ',
                                   f_rule=function_points,
-                                  pw_repn='INC')
+                                  pw_repn='INC')  #INC
     else:
         m.con_hydrogen_storage_cost=Constraint(expr=m.c_hydrogen_storage== 10 ** (0.217956 * np.log10(h2_storage) ** 2 - 1.575209 * np.log10(h2_storage) + 4.463930))
 
@@ -467,13 +469,15 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
-    '''Operation strategy'''
+    '''Operation strategy 1'''
+    '''if the local renewable electricity is excess, the system can sell the excess electricity to the grid'''
+
     def operation_rule_first_charge_el_1 (m,i):
-        return m.CP_wind[i] + m.CP_pv[i] >= m.electrolyser_capacity - m.M * (1 - m.sell_active[i])
+        return m.CP_wind[i] + m.CP_pv[i] >= m.electrolyser_capacity+m.electrolyser_capacity/39.4*0.7*0.83 - m.M * (1 - m.sell_active[i])
     m.con_operation_rule_first_charge_el_1 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_1)
 
     def operation_rule_first_charge_el_2 (m,i):
-        return m.CP_wind[i] + m.CP_pv[i] <= m.electrolyser_capacity +m.M * m.sell_active[i]
+        return m.CP_wind[i] + m.CP_pv[i] <= m.electrolyser_capacity+m.electrolyser_capacity/39.4*0.7*0.83 +m.M * m.sell_active[i]
     m.con_operation_rule_first_charge_el_2 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_2)
 
     def operation_rule_first_charge_el_3(m, i):
@@ -501,9 +505,10 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
     solver.options['NonConvex'] = 2
-    solver.options['presolve'] = True
-    solver.options['OptimalTol'] = 1e-5
-    results = solver.solve(m)
+    solver.options['OptimalityTol'] = 1e-5
+    solver.options['Presolve'] = 2  # Set the level of presolve
+    solver.options['Cuts'] = 2  # Set the level of cutting planes
+    results = solver.solve(m,tee=True)
 
     '''Result printout'''
     if results.solver.termination_condition == TerminationCondition.optimal:
@@ -536,6 +541,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         MEF_CO2 = list()
         AEF_CO2 = list()
         load = list()
+        sell_active=list()
 
         for Time in m.time_periods:
             CP_grid_out.append(value(m.CP_grid_out[Time]))
@@ -564,6 +570,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
             MEF_CO2.append(value(m.MEF_CO2[Time]))
             AEF_CO2.append(value(m.AEF_CO2[Time]))
             load.append(value(m.Load[Time]))
+            #sell_active.append(value(m.sell_active[Time]))
 
         data = {'grid_interaction': grid_interaction,
                 'CP_grid_out': CP_grid_out,
@@ -591,6 +598,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
                 'MEF_CO2': MEF_CO2,
                 'AEF_CO2': AEF_CO2,
                 'Load': load,
+                #'Sell_active':sell_active,
 
                 }
         # Create a DataFrame
