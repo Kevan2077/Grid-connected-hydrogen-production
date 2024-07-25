@@ -18,8 +18,9 @@ warnings.filterwarnings("ignore")
 
 ''' Initialize the optimisation model '''
 def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_interval,
-              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound,c_bat_class):
-    print('Operation')
+              comp2_conversion,hydrogen_storage_type,hydrogen_load_flow, hydrogen_storage_bound,c_bat_class, day, hydrogen_storage_initial_value):
+    #day is used to simulate the daily operation
+    print(f'Daily Operation: {day}')
     #data import
     file_name='Optimization model\\Dataset\\'+'Dataframe '+str(location)+'.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -40,9 +41,12 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     new_wind=divide(source_df['Wind'],step)
     data['Solar']=new_solar
     data['Wind']=new_wind
+    data['Day'] = data['Time'].dt.dayofyear
     source_df=data
-    end_index=60/step*8759
-
+    source_df = source_df[source_df['Day'] == day]
+    source_df.reset_index(drop=True, inplace=True)
+    end_index=60/step*23 #from 0-23
+    print(source_df)
     '''Pyomo Model'''
     m = ConcreteModel()
     '''Set the operation time period'''
@@ -109,12 +113,13 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.grid_electricity_cost=Var()
     m.capex=Var()
     m.LCOH=Var()
+    m.LCOH_ex=Var()
     m.production_amount=Var()
 
 
     #load and hydrogen reservoir total production amount
     m.Load=Var(m.time_periods, domain=NonNegativeReals)
-    m.res=Var(m.time_periods, domain=NonPositiveReals)
+
     #check whether the flow can be active or not using Big M method
     m.sell_active = Var(m.time_periods, within=Binary)           #check whether electricity can be sold
     m.is_grid_pin_active = Var(m.time_periods, within=Binary)
@@ -163,16 +168,19 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
+    print(Opt_off_grid)
     if opt == 0:
+        print('Fixed configuration')
         m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
         m.wind_capacity = Param(initialize=Opt_off_grid.loc[0, 'wind_capacity'] * ratio)
         m.h2_storage_capacity = Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'])
         m.h2_storage_capacity_t=Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity']/1000)
         h2_storage=Opt_off_grid.loc[0, 'hydrogen_storage_capacity'] / 1000
         m.electrolyser_capacity = Param(initialize=Opt_off_grid.loc[0, 'electrolyser_capacity'])  # 175kw
+        '''
     if grid == 1:
         m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
-
+    '''
     print(f'Location: {location}')
     '''Flow variables'''
 
@@ -195,6 +203,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.CP_grid_in= Var(m.time_periods, domain=NonNegativeReals)
     m.CP_comp=Var(m.time_periods, domain=NonPositiveReals)
     m.CP_bat = Var(m.time_periods, domain=Reals)  # can either discharge or charge
+
     #Compressor node:
     m.comp_pin=Var(m.time_periods, domain=NonNegativeReals)
 
@@ -220,10 +229,13 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     m.h2_storage_pin = Var(m.time_periods, domain=NonNegativeReals)     #into
     m.h2_storage_pout = Var(m.time_periods, domain=NonPositiveReals)    #out
     m.h2_storage_level = Var(m.interval, domain=NonNegativeReals)
-    m.initial_h2_storage_value = Var(domain=NonNegativeReals)
+
     m.is_storage_pin_active = Var(m.time_periods, within=Binary)
     m.is_storage_pout_active = Var(m.time_periods, within=Binary)
-
+    if day==1:
+        m.initial_h2_storage_value = Var(domain=NonNegativeReals)
+    else:
+        m.initial_h2_storage_value=Param(initialize=hydrogen_storage_initial_value)
     '''Constraints'''
 
     '''Wind and PV generation''' # excess energy will be curtailed
@@ -427,7 +439,6 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     def constraint_rule_battery_power_capacity_pos(m, i):
         return m.bat_pin[i] <= m.bat_p_capacity
-
     m.con_battery_power_capacity_pos = Constraint(m.time_periods, rule=constraint_rule_battery_power_capacity_pos)
 
     def constraint_rule_battery_power_capacity_neg(m, i):
@@ -443,7 +454,9 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         m.load_constraint = Constraint(range(len(cumulative_supply)-1), rule=load_constraint_rule)
     else:
         def load_constraint_rule(m, i):
-            return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == hydrogen_load_flow*24* 365 / number_of_supply
+            #return sum(m.Load[t] for t in m.time_periods if (t >= i) and (t < i+batch_interval)) == hydrogen_load_flow*24* 365 / number_of_supply
+            return sum(m.Load[t] for t in m.time_periods if
+                       (t >= i) and (t < i + batch_interval)) == hydrogen_load_flow
         m.load_constraint = Constraint(m.supply_periods, rule=load_constraint_rule)
 
     def constraint_rule_H2CP_H2demand(m, i):
@@ -471,7 +484,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     '''Operation strategy 1'''
     '''if the local renewable electricity is excess, the system can sell the excess electricity to the grid'''
-
+    '''
     def operation_rule_first_charge_el_1 (m,i):
         return m.CP_wind[i] + m.CP_pv[i] >= m.electrolyser_capacity+m.electrolyser_capacity/39.4*0.7*0.83 - m.M * (1 - m.sell_active[i])
     m.con_operation_rule_first_charge_el_1 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_1)
@@ -483,13 +496,13 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     def operation_rule_first_charge_el_3(m, i):
         return m.is_grid_pin_active[i] - m.sell_active[i] == 0  # if the supply amount is not enough then shut down the grid_in path
     m.com_operation_rule_first_charge_el_3 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_3)
-
+    '''
 
     # LCOH and capex
     m.con_capex = Constraint(expr=m.capex == m.c_pv * m.pv_capacity +
                               m.c_wind * m.wind_capacity +
                               m.c_el * m.electrolyser_capacity +
-                              m.c_hydrogen_storage * m.h2_storage_capacity +
+                              m.c_hydrogen_storage* m.h2_storage_capacity +
                               m.c_bat_e * m.bat_e_capacity + m.c_bat_p * m.bat_p_capacity)
 
 
@@ -499,6 +512,14 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
             # /m.production_amount
             # + m.el_VOM)
     m.LCOH_constraint = Constraint(rule=LCOH_constraint)
+
+    def LCOH_ex_constraint(m,i):
+        return m.LCOH_ex == (
+            (m.capex * m.CRF + m.pv_capacity * m.pv_FOM + m.wind_capacity * m.wind_FOM + m.electrolyser_capacity* m.el_FOM))
+            # /m.production_amount
+            # + m.el_VOM)
+    m.LCOH_ex_constraint = Constraint(rule=LCOH_ex_constraint)
+
     #0.7 is the ratio between USD:AUD
 
     m.obj = Objective(expr=m.LCOH, sense=minimize)
@@ -608,7 +629,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         else: #pipeline
             df['Direct_pipeline_supply'] = np.where(df['h2_storage_pin']+df['h2_storage_pout']>=0, df['Load'], df['Load']+(df['h2_storage_pin']+df['h2_storage_pout']))
 
-        df['Time'] = Spotprice(2021, 'QLD1', 60)['Time']
+        df['Time'] = source_df['Time']
 
         #Test the flow direction
         '''
@@ -727,7 +748,17 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
         # Create a DataFrame
         indicators_df = pd.DataFrame([indicators])
-        return df, indicators_df
+
+        '''save all the result'''
+        variable_values = []
+        for v in m.component_objects(Var, active=True):
+            varobject = getattr(m, str(v))
+            for index in varobject:
+                variable_values.append([varobject[index].name, varobject[index].value])
+        # Convert to DataFrame
+        model = pd.DataFrame(variable_values, columns=['Variable', 'Value'])
+
+        return df, indicators_df, model
     else:
         print("No optimal solution found")
         print("Solver Status:", results.solver.status)
