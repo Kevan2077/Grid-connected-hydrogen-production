@@ -132,7 +132,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    bat = 0
+    bat = 1
     if bat == 0:
         print('No battery is taken into account')
         m.bat_e_capacity = Param(initialize=0)

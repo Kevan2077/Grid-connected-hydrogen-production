@@ -88,8 +88,8 @@ def main(Year,
 '''Parameter input'''
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
-Grid=1
-Opt=0      # 0: indicates fixed capacaity; 1: optimized capacity
+Grid=0
+Opt=1      # 0: indicates fixed capacaity; 1: optimized capacity
 Step=60
 Num_interval=0
 Ratio=1
@@ -98,7 +98,7 @@ Batch_interval=1
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
 storage_bound=120    #tonnes
-battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
+battery_class='A'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
 
 df = pd.DataFrame()
 for y in [2021]:
@@ -115,8 +115,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound,
                                                      bat_class=battery_class)
             df = pd.concat([df, key_indicators], ignore_index=True)
-df.to_csv('Result\\Operation strategy\\off grid configuration on grid.csv')
-operation_result.to_csv('Result\\Operation strategy\\off grid configuration on grid operation.csv')
+df.to_csv('Test\\off grid configuration battery AA.csv')
+operation_result.to_csv('Test\\off grid configuration battery AA operation.csv')
 print(df)
 
 
