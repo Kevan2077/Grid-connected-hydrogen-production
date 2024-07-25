@@ -232,8 +232,10 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     m.is_storage_pin_active = Var(m.time_periods, within=Binary)
     m.is_storage_pout_active = Var(m.time_periods, within=Binary)
+
     if day==1:
-        m.initial_h2_storage_value = Var(domain=NonNegativeReals)
+        #m.initial_h2_storage_value = Var(domain=NonNegativeReals)
+        m.initial_h2_storage_value =Param(initialize=Opt_off_grid.loc[0, 'hydrogen_storage_capacity']*0.5)
     else:
         m.initial_h2_storage_value=Param(initialize=hydrogen_storage_initial_value)
     '''Constraints'''

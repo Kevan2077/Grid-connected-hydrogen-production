@@ -102,7 +102,7 @@ load=180
 storage_bound=120    #tonnes
 battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
 Day=20
-H2_storage_initial_value=0    #default is 0
+H2_storage_initial_value=0.5    #default is 0
 
 df = pd.DataFrame()
 operation=pd.DataFrame()
@@ -135,12 +135,11 @@ for y in [2021]:
 #.to_csv('Result\\Operation strategy\\daily operation.csv')
 #print(operation_result)
 
-path=r'Result\\Operation strategy\\daily operation df.csv'
-df=pd.read_csv(path,index_col=0)
+
 # Get the value of the specified variable
 LCOH_ex= model.loc[model['Variable'] =='LCOH_ex', 'Value'].values[0]
-
-
+path=r'Result\\Operation strategy\\daily operation df.csv'
+df=pd.read_csv(path, index_col=0)
 LCOH=(LCOH_ex+sum(df['grid_cost'])*0.7)/sum(df['production_amount'])+0.02      #0.02 is el_VOM
 print((LCOH_ex)/sum(df['production_amount'])+0.02)
 print(LCOH)
