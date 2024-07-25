@@ -89,7 +89,7 @@ def main(Year,
 Location='QLD1'           #'QLD1','TAS1','SA1','NSW1','VIC1'
 Year=2021
 Grid=1
-Opt=1      # 0: indicates fixed capacaity; 1: optimized capacity
+Opt=0      # 0: indicates fixed capacaity; 1: optimized capacity
 Step=60
 Num_interval=0
 Ratio=1
@@ -115,8 +115,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound,
                                                      bat_class=battery_class)
             df = pd.concat([df, key_indicators], ignore_index=True)
-#df.to_csv('Result\\Operation strategy\\first charge el on grid.csv')
-#operation_result.to_csv('Result\\Operation strategy\\first charge el on grid operation.csv')
+df.to_csv('Result\\Operation strategy\\off grid configuration on grid.csv')
+operation_result.to_csv('Result\\Operation strategy\\off grid configuration on grid operation.csv')
 print(df)
 
 
