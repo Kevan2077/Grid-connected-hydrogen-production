@@ -115,8 +115,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound,
                                                      bat_class=battery_class)
             df = pd.concat([df, key_indicators], ignore_index=True)
-#df.to_csv('Result\\Operation strategy\\first charge el on grid.csv')
-#operation_result.to_csv('Result\\Operation strategy\\first charge el on grid operation.csv')
+df.to_csv('Result\\Operation strategy\\Capacity\\on grid.csv')
+operation_result.to_csv('Result\\Operation strategy\\Capacity\\on grid operation.csv')
 print(df)
 
 

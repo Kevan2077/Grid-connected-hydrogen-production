@@ -471,7 +471,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
 
     '''Operation strategy 1'''
     '''if the local renewable electricity is excess, the system can sell the excess electricity to the grid'''
-
+    '''
     def operation_rule_first_charge_el_1 (m,i):
         return m.CP_wind[i] + m.CP_pv[i] >= m.electrolyser_capacity+m.electrolyser_capacity/39.4*0.7*0.83 - m.M * (1 - m.sell_active[i])
     m.con_operation_rule_first_charge_el_1 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_1)
@@ -483,7 +483,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     def operation_rule_first_charge_el_3(m, i):
         return m.is_grid_pin_active[i] - m.sell_active[i] == 0  # if the supply amount is not enough then shut down the grid_in path
     m.com_operation_rule_first_charge_el_3 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_3)
-
+    '''
 
     # LCOH and capex
     m.con_capex = Constraint(expr=m.capex == m.c_pv * m.pv_capacity +
