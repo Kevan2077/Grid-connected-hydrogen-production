@@ -132,7 +132,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    bat = 0
+    bat = 1
     if bat == 0:
         print('No battery is taken into account')
         m.bat_e_capacity = Param(initialize=0)
@@ -483,8 +483,8 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     def operation_rule_first_charge_el_3(m, i):
         return m.is_grid_pin_active[i] - m.sell_active[i] == 0  # if the supply amount is not enough then shut down the grid_in path
     m.com_operation_rule_first_charge_el_3 = Constraint(m.time_periods, rule=operation_rule_first_charge_el_3)
-    '''
 
+    '''
     # LCOH and capex
     m.con_capex = Constraint(expr=m.capex == m.c_pv * m.pv_capacity +
                               m.c_wind * m.wind_capacity +
