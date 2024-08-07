@@ -157,7 +157,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     #Fixed capacity
     #input the off-grid optimized results:
     #file_name='Optimization model\\Result\\Hourly supply periods\\'+'off-grid result'+'.csv'
-    file_name='D:\Do it\Phd\Pycharm project\Grid-connected hydrogen\Local factory\Result\Hourly supply period\off-grid result.csv'
+    file_name='Result\Hourly supply period\off-grid result.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 
@@ -483,7 +483,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
     solver.options['NonConvex'] = 2
     solver.options['presolve'] = True
-    solver.options['OptimalTol'] = 1e-5
+    #solver.options['Tol'] = 1e-5
     results = solver.solve(m)
 
     '''Result printout'''

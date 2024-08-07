@@ -5,6 +5,7 @@ from pyomo.environ import *
 import warnings
 import pandas as pd
 import numpy as np
+
 from Functions.Data import *
 import os
 import seaborn as sns
@@ -115,8 +116,8 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound,
                                                      bat_class=battery_class)
             df = pd.concat([df, key_indicators], ignore_index=True)
-df.to_csv('test.csv')
-operation_result.to_csv('test_operation.csv')
+#df.to_csv('test.csv')
+#operation_result.to_csv('test_operation.csv')
 print(df)
 
 
