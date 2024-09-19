@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore")
 
 def main(Year,
          Location,
+         Location_code,
          Grid,
          Opt,
          Step,
@@ -35,6 +36,7 @@ def main(Year,
             Hydrogen_storage_type = i
             operation_result, key_indicators = optimiser(year=Year,
                                                  location=Location,
+                                                location_code=Location_code,
                                                  grid=Grid,
                                                  opt=Opt,
                                                  step=Step,
@@ -60,7 +62,10 @@ def main(Year,
         min_index = df['LCOH'].idxmin()
         # Drop the row with the minimum value in 'LCOH' column
         df.drop(df.index.difference([min_index]), inplace=True)
-        if (df['hydrogen_storage_type'] == 'Pipeline').any():
+        if df is None:
+            print('No optimal solution found')
+            return None, None
+        elif (df['hydrogen_storage_type'] == 'Pipeline').any():
             return df, opt1
         else:
             return df, opt2
@@ -69,6 +74,7 @@ def main(Year,
         Hydrogen_storage_type = storage_type
         operation_result, key_indicators = optimiser(year=Year,
                                                      location=Location,
+                                                     location_code=Location_code,
                                                      grid=Grid,
                                                      opt=Opt,
                                                      step=Step,
@@ -100,15 +106,34 @@ Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All
 load=180
 storage_bound=120    #tonnes
 battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
+Location_code='Cell 2126'
 
-df = pd.DataFrame()
-for y in [2021]:
-    Year=y
-    for L in ['QLD1']:
-        Location = L
-        for j in ['Lined Rock']:
+
+'''Read location code information'''
+file='Optimization model\\Dataset\\NEM\\NEM.csv'
+grid_point=pd.read_csv(file)
+#grid_point=grid_point.iloc[234:]
+grid_point=grid_point[grid_point['Location']=='Cell 155']
+print(grid_point.head())
+#grid_number=grid_point[grid_point['Location']==Location_code]
+#Location_code=grid_number['Location'].iloc[0]
+#grid_code=grid_number['State'].iloc[0]
+#Location=grid_code
+'''
+for i in grid_point['Location']:
+
+    location_value = i
+    grid_number = grid_point[grid_point['Location'] == i]
+    state_value = grid_number['State'].iloc[0]
+    Location_code=location_value
+    grid_code=state_value
+
+    df = pd.DataFrame()
+    for y in [2021]:
+        Year=y
+        for j in ['All']:
             Hydrogen_storage_type=j
-            key_indicators,operation_result=main(Year=Year,Location=Location,Grid=Grid,Opt=Opt,Step=Step,
+            key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                      Num_interval=Num_interval,Ratio=Ratio,
                                                      SO=SO,Batch_interval=Batch_interval,
                                                      storage_type=Hydrogen_storage_type,
@@ -116,9 +141,43 @@ for y in [2021]:
                                                      Hydrogen_storage_bound=storage_bound,
                                                      bat_class=battery_class)
             df = pd.concat([df, key_indicators], ignore_index=True)
-#df.to_csv('test.csv')
+            df.to_csv(f'Result\Hourly supply period\grid node calculation\{Location_code}.csv')
+    #operation_result.to_csv('test_operation.csv')
+    '''
+for i in grid_point['Location']:
+    location_value = i
+    print(i)
+    grid_number = grid_point[grid_point['Location'] == location_value]
+    state_value = grid_number['State'].iloc[0]
+    Location_code = location_value
+    grid_code = state_value
+    print(grid_code)
+    Grid=1
+    SO=1
+    result=pd.DataFrame()
+    for y in [2021]:
+        Year=y
+        for i in [0, 1, 24, 720, 8760]:
+            Num_interval = i
+
+            if Num_interval == 1 or Num_interval == 24:
+                Hydrogen_storage_type = 'Lined Rock'
+            elif Num_interval == 0 or Num_interval == 8760:
+                Hydrogen_storage_type = 'Pipeline'
+            else:
+                Hydrogen_storage_type = 'All'
+
+            key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
+                                                         Num_interval=Num_interval,Ratio=Ratio,
+                                                         SO=SO,Batch_interval=Batch_interval,
+                                                         storage_type=Hydrogen_storage_type,
+                                                         Hydrogen_load_flow=load,
+                                                         Hydrogen_storage_bound=storage_bound,
+                                                         bat_class=battery_class)
+            result = pd.concat([result, key_indicators], ignore_index=True)
+    result.to_csv(f'Result\Hourly supply period\grid node calculation\{Location_code}_on_grid_test.csv')
 #operation_result.to_csv('test_operation.csv')
-print(df)
+
 
 
 
