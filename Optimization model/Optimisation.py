@@ -164,6 +164,7 @@ def optimiser(year, location, grid, opt, step, num_interval,ratio,SO, batch_inte
     #input the off-grid optimized results:
     #file_name='Optimization model\\Result\\Hourly supply periods\\'+'off-grid result'+'.csv'
     file_name='Result\\Hourly supply period\\off-grid result.csv'
+    file_name='D:\Do it\on grid.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
 

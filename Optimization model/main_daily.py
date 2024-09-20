@@ -112,7 +112,7 @@ for y in [2021]:
         Location = L
         for j in ['Lined Rock']:
             Hydrogen_storage_type=j
-            for i in range(1,2):
+            for i in range(1,366):
                 print(f"Day: {i}")
                 Day=i
                 if i !=1:
@@ -131,14 +131,15 @@ for y in [2021]:
                 operation = pd.concat([operation, operation_result], axis=0)
                 operation.reset_index(drop=True, inplace=True)
                 #df = pd.concat([df, key_indicators], ignore_index=True)       #for result recorded in horizon level
-#df.to_csv('Result\\Operation strategy\\daily operation df.csv')
-#.to_csv('Result\\Operation strategy\\daily operation.csv')
+df.to_csv('Result\\Operation strategy\\daily operation on-grid configuration df.csv')
+operation.to_csv('Result\\Operation strategy\\daily operation on-grid configuration.csv')
 #print(operation_result)
 
 
 # Get the value of the specified variable
 LCOH_ex= model.loc[model['Variable'] =='LCOH_ex', 'Value'].values[0]
 path=r'Result\\Operation strategy\\daily operation df.csv'
+
 df=pd.read_csv(path, index_col=0)
 LCOH=(LCOH_ex+sum(df['grid_cost'])*0.7)/sum(df['production_amount'])+0.02      #0.02 is el_VOM
 print((LCOH_ex)/sum(df['production_amount'])+0.02)
