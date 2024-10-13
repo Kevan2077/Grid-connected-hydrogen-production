@@ -141,9 +141,9 @@ for i in grid_point['Location']:
 '''
 #for i in grid_point['Location']:
 result = pd.DataFrame()
-for y in [2021]:
+for y in [2023]:
     Year=y
-    for i in ['NSW1']:
+    for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -177,7 +177,8 @@ for y in [2021]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-result.to_csv(f'Result\\Hourly supply period\\Renewableninja\\{Location_code}_different ratio.csv')
+            #operation_result.to_csv(f'Result\\Hourly supply period\\batch interval\\{Location_code}_operation_track_{Num_interval}.csv')
+result.to_csv(f'D:\\Do it\\Phd\\Pycharm project\\Grid-connected hydrogen\\Local factory\\Result\\Hourly supply period\\Renewableninja\\on_grid results_2023.csv')
 #operation_result.to_csv('test_operation.csv')
 
 

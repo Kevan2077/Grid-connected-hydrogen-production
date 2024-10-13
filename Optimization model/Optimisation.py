@@ -112,9 +112,18 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     m.price = Param(m.time_periods, initialize={i: float(source_df.loc[i, 'Prices']) for i in m.time_periods})
     m.MEF = Param(m.time_periods,
                                initialize={i: float(source_df.loc[i, 'Carbon intensity']) for i in m.time_periods})
+    '''
     m.AEF = Param(m.time_periods,
                                initialize={i: float(source_df.loc[i, 'Mean Carbon intensity']) for i in
                                                 m.time_periods})
+    '''
+
+    path=f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\2023 AEF\\{location[:-1]} new.csv'
+    AEF=pd.read_csv(path, index_col=0)
+    m.AEF = Param(m.time_periods,
+                               initialize={i: float(AEF.loc[i, 'New_Intensity_Index']) for i in
+                                                m.time_periods})
+    print(AEF['New_Intensity_Index'])
 
     '''Variable definition'''
 
@@ -176,8 +185,8 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
     print(Opt_off_grid)
     '''
-    file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
-    #file_name =f'Result\Hourly supply period\Renewableninja\off_grid results_{year}.csv'
+    #file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
+    file_name =f'Result\Hourly supply period\Renewableninja\off_grid results_{year}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
