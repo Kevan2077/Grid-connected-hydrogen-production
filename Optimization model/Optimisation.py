@@ -154,9 +154,11 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    m.pv_capacity=Var(domain=NonNegativeReals)
-    m.wind_capacity=Var(domain=NonNegativeReals)
-    m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    #m.pv_capacity=Var(domain=NonNegativeReals)
+    #m.wind_capacity=Var(domain=NonNegativeReals)
+    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
+
+
     bat=0
     if bat==0:
         print('No battery is taken into account')
@@ -509,7 +511,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 

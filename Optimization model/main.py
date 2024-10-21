@@ -114,7 +114,7 @@ grid_point=pd.read_csv(file)
 result = pd.DataFrame()
 for y in [2021]:
     Year=y
-    for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
+    for i in ['VIC1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -133,7 +133,7 @@ for y in [2021]:
         Location_code = location_value
         grid_code = state_value
         print(grid_code)
-        Grid=0
+        Grid=1
         SO=0
         Opt=1
         Hydrogen_storage_type = 'All'
@@ -148,8 +148,8 @@ for y in [2021]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            operation_result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year} {location_value}.csv')
-result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year}.csv')
+            #operation_result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year} {location_value}.csv')
+#result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year}.csv')
 #operation_result.to_csv('test_operation.csv')
 
 
