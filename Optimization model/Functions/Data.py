@@ -130,7 +130,7 @@ def Spotprice(year, location,step):
     result = pd.read_csv(file_path, index_col=0)
     df = result[result['Region'] == location]
 
-    df['Time'] = pd.to_datetime(df['Time'])
+    df['Time'] = pd.to_datetime(df['Time'], format='mixed')
     df.set_index('Time', inplace=True)
 
     # Resample and calculate 15-minute mean

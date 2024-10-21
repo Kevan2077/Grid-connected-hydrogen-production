@@ -116,6 +116,7 @@ grid_point=pd.read_csv(file)
 '''
 for i in grid_point['Location']:
 
+
     location_value = i
     grid_number = grid_point[grid_point['Location'] == i]
     state_value = grid_number['State'].iloc[0]
@@ -141,7 +142,7 @@ for i in grid_point['Location']:
 '''
 #for i in grid_point['Location']:
 result = pd.DataFrame()
-for y in [2023]:
+for y in [2021]:
     Year=y
     for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
         if i=='QLD1':
@@ -162,12 +163,12 @@ for y in [2023]:
         Location_code = location_value
         grid_code = state_value
         print(grid_code)
-        Grid=1
+        Grid=0
         SO=0
-        Opt=0
+        Opt=1
         Hydrogen_storage_type = 'All'
-        for i in np.arange(0,1.6,0.1):
-            Ratio=i
+        for i in [0]:
+            Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
                                                          SO=SO,Batch_interval=Batch_interval,
@@ -177,8 +178,8 @@ for y in [2023]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            #operation_result.to_csv(f'Result\\Hourly supply period\\batch interval\\{Location_code}_operation_track_{Num_interval}.csv')
-result.to_csv(f'D:\\Do it\\Phd\\Pycharm project\\Grid-connected hydrogen\\Local factory\\Result\\Hourly supply period\\Renewableninja\\on_grid results_2023.csv')
+            operation_result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year} {location_value}.csv')
+result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year}.csv')
 #operation_result.to_csv('test_operation.csv')
 
 
