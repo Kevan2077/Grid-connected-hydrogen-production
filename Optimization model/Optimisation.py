@@ -109,22 +109,24 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     m.comp2_power_conversion=Param(initialize=comp2_conversion)
 
     ''' price and carbon intensity '''
+    print(source_df['Prices'])
     m.price = Param(m.time_periods, initialize={i: float(source_df.loc[i, 'Prices']) for i in m.time_periods})
     m.MEF = Param(m.time_periods,
                                initialize={i: float(source_df.loc[i, 'Carbon intensity']) for i in m.time_periods})
-    '''
+
     m.AEF = Param(m.time_periods,
                                initialize={i: float(source_df.loc[i, 'Mean Carbon intensity']) for i in
                                                 m.time_periods})
-    '''
 
-    path=f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\2023 AEF\\{location[:-1]} new.csv'
+
+    '''
+    path=f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\{year} AEF\\{location[:-1]} new.csv'
     AEF=pd.read_csv(path, index_col=0)
     m.AEF = Param(m.time_periods,
                                initialize={i: float(AEF.loc[i, 'New_Intensity_Index']) for i in
                                                 m.time_periods})
     print(AEF['New_Intensity_Index'])
-
+    '''
     '''Variable definition'''
 
     #Indicators:
@@ -152,9 +154,9 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    #m.pv_capacity=Var(domain=NonNegativeReals)
-    #m.wind_capacity=Var(domain=NonNegativeReals)
-    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    m.pv_capacity=Var(domain=NonNegativeReals)
+    m.wind_capacity=Var(domain=NonNegativeReals)
+    m.electrolyser_capacity=Var(domain=NonNegativeReals)
     bat=0
     if bat==0:
         print('No battery is taken into account')
@@ -197,8 +199,8 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     if grid == 1:
         print("Location code:",location_code)
         print("Grid:",location)
-        #print('Capex_limit is open')
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
+        print('Capex_limit is open')
+        m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
         if opt == 0:
             print('No capacity optimization')
             m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
@@ -629,7 +631,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         else: #pipeline
             df['Direct_pipeline_supply'] = np.where(df['h2_storage_pin']+df['h2_storage_pout']>=0, df['Load'], df['Load']+(df['h2_storage_pin']+df['h2_storage_pout']))
 
-        df['Time'] = Spotprice(2021, 'QLD1', 60)['Time']
+        df['Time'] = Spotprice(year, 'QLD1', 60)['Time']
 
         #Test the flow direction
         '''
