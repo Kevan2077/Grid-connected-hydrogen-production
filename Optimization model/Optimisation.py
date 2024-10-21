@@ -416,7 +416,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     if hydrogen_storage_type=='Pipeline':
         print('Hydrogen storage type is',hydrogen_storage_type)
         # Piecewise function to calculate the cost
-        b, v = piecewise_function(hydrogen_storage_bound, 50, hydrogen_storage_type)  # lower bound is the cross point
+        b, v = piecewise_function(hydrogen_storage_bound, 150, hydrogen_storage_type)  # lower bound is the cross point
         breakpoints = list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,
@@ -427,7 +427,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     if hydrogen_storage_type =='Salt Cavern' or hydrogen_storage_type =='Lined Rock':
         print('Hydrogen storage type is',hydrogen_storage_type)
         #Piecewise function to calculate the cost
-        b,v=piecewise_function(hydrogen_storage_bound,50,hydrogen_storage_type)  #lower bound is the cross point
+        b,v=piecewise_function(hydrogen_storage_bound,150,hydrogen_storage_type)  #lower bound is the cross point
         breakpoints =list(b)
         function_points = list(v)
         m.con = Piecewise(m.c_hydrogen_storage, m.h2_storage_capacity_t,

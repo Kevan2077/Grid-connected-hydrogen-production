@@ -208,8 +208,11 @@ def piecewise_function(upper_bound, insert_point,hydrogen_storage_type):
 
     if hydrogen_storage_type=='Lined Rock':
         LRC_range = np.linspace(cross_point,upper_bound, insert_point)
-        x = np.log10(LRC_range)
-        cost = 10 ** (0.217956 * x ** 2 - 1.575209 * x + 4.463930)
+        cost = np.where(
+            LRC_range <= 4000,
+            10 ** (0.217956 * np.log10(LRC_range) ** 2 - 1.575209 * np.log10(LRC_range) + 4.463930),
+            41.48
+        )
 
         return LRC_range, cost
 
