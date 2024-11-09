@@ -46,7 +46,7 @@ def Mean_carbon_intensity(year, location,step):
     result = pd.read_csv(file_path, index_col=0)
 
     df = result[result['Region'] == location]
-
+    df['Intensity_Index'] = df['Intensity_Index'].apply(lambda x: max(x, 0))
     # Functions cleaning
     df['TimeEnding'] = pd.to_datetime(df['TimeEnding'],format="%d/%m/%Y %H:%M", errors='coerce')
     df.set_index('TimeEnding', inplace=True)
@@ -59,7 +59,7 @@ def Mean_carbon_intensity(year, location,step):
 
     last_row_index = Carbon_Intensity.index[-1]
     Carbon_Intensity = Carbon_Intensity.drop(last_row_index)
-    Carbon_Intensity['Intensity_Index'] = Carbon_Intensity['Intensity_Index'].apply(lambda x: max(x, 0))
+
 
     # Fill NaN values in 'Intensity_Index' with the average of previous and next day values at the same 30-minute mark
     Shift=int(60/step*24)
@@ -88,7 +88,7 @@ def carbon_intensity(year, location,step):
     result = pd.read_csv(file_path, index_col=0)
 
     df = result[result['Region'] == location]
-
+    df['Intensity_Index'] = df['Intensity_Index'].apply(lambda x: max(x, 0))
     # Functions cleaning
     df['Time'] = pd.to_datetime(df['Time'],format="%d/%m/%Y %H:%M", errors='coerce')
 
@@ -102,7 +102,7 @@ def carbon_intensity(year, location,step):
 
     last_row_index = Carbon_Intensity.index[-1]
     Carbon_Intensity = Carbon_Intensity.drop(last_row_index)
-    Carbon_Intensity['Intensity_Index'] = Carbon_Intensity['Intensity_Index'].apply(lambda x: max(x, 0))
+
 
     # Fill NaN values in 'Intensity_Index' with the average of previous and next day values at the same 30-minute mark
     Shift=int(60/step*24)
@@ -129,8 +129,12 @@ def Spotprice(year, location,step):
     file_path = os.path.join(file_path, file_name)
     result = pd.read_csv(file_path, index_col=0)
     df = result[result['Region'] == location]
-
-    df['Time'] = pd.to_datetime(df['Time'], format='mixed')
+    #df['Time'] = pd.to_datetime(df['Time'])
+    #df['Time'] = df['Time'].dt.strftime('%d/%m/%Y %H:%M')
+    if year==2021:
+        df['Time'] = pd.to_datetime(df['Time'], format='%d/%m/%Y %H:%M')
+    if year==2023 or year==2022:
+        df['Time'] = pd.to_datetime(df['Time'])
     df.set_index('Time', inplace=True)
 
     # Resample and calculate 15-minute mean
@@ -228,3 +232,19 @@ def c_bat_cost(cost_class):
     c_bat_e=result['c_bat_e'].values[0]
     c_bat_p=result['c_bat_p'].values[0]
     return c_bat_e,c_bat_p
+
+def Calculation_LCOH(df):
+    CRF=0.07822671821
+    df['wind_capex+wind_OM']=(df['wind_capacity']*2126.6*CRF+df['wind_capacity']*17.5)/df['production_amount']
+    df['pv_capex+pv_OM']=(df['pv_capacity']*(1068.2)*CRF+df['pv_capacity']*(11.9))/df['production_amount']
+    df['hydrogen_storage_capex']=df['hydrogen_storage_capacity']*df['hydrogen_storage_cost']*CRF/df['production_amount']
+    df['electrolyser_capex+electrolyser_OM']=(df['electrolyser_capacity']*(1343.3)*CRF+df['electrolyser_capacity']*(37.4))/df['production_amount']+0.02
+    df['wind_OM']=df['wind_capacity']*17.5/df['production_amount']
+    df['pv_OM']=df['pv_capacity']*(11.9)/df['production_amount']
+    df['electrolyser_OM']=df['electrolyser_capacity']*(37.4)/df['production_amount']+0.02
+    df['grid_electricity_cost']=df['grid_cost']*0.7/(df['production_amount'])
+    df['LCOH_sum'] = (df['wind_capex+wind_OM'] +
+                   df['pv_capex+pv_OM'] +
+                   df['hydrogen_storage_capex'] +
+                   df['electrolyser_capex+electrolyser_OM'] +df['grid_electricity_cost'])
+    return df

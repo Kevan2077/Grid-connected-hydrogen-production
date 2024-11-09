@@ -10,6 +10,7 @@ from Functions.Data import *
 import os
 import sys
 
+
 import seaborn as sns
 
 pd.set_option('display.max_columns', None)
@@ -32,7 +33,9 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
 
     '''AEF'''
     #data['Mean Carbon intensity']=Mean_carbon_intensity(year,location,step)['Intensity_Index']
-    data['Mean Carbon intensity'] = source_df['AEF']
+    path=f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\{year} AEF\\{location[:-1]} final.csv'
+    AEF=pd.read_csv(path, index_col=0)
+    AEF['AEF'] = AEF['Sum_Emissions'] / (AEF['Total_Energy'] + 0.53 * AEF['Rooftop_PV'])
     '''
     When we adopt different time resolution, we can change 'step': 15,30,60 (default) 
     '''
@@ -109,24 +112,15 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     m.comp2_power_conversion=Param(initialize=comp2_conversion)
 
     ''' price and carbon intensity '''
-    print(source_df['Prices'])
+
     m.price = Param(m.time_periods, initialize={i: float(source_df.loc[i, 'Prices']) for i in m.time_periods})
     m.MEF = Param(m.time_periods,
                                initialize={i: float(source_df.loc[i, 'Carbon intensity']) for i in m.time_periods})
 
     m.AEF = Param(m.time_periods,
-                               initialize={i: float(source_df.loc[i, 'Mean Carbon intensity']) for i in
+                               initialize={i: float(AEF.loc[i, 'AEF']) for i in
                                                 m.time_periods})
 
-
-    '''
-    path=f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\{year} AEF\\{location[:-1]} new.csv'
-    AEF=pd.read_csv(path, index_col=0)
-    m.AEF = Param(m.time_periods,
-                               initialize={i: float(AEF.loc[i, 'New_Intensity_Index']) for i in
-                                                m.time_periods})
-    print(AEF['New_Intensity_Index'])
-    '''
     '''Variable definition'''
 
     #Indicators:
@@ -180,7 +174,6 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
 
     #Fixed capacity
     #input the off-grid optimized results:
-    #file_name='Optimization model\\Result\\Hourly supply periods\\'+'off-grid result'+'.csv'
     '''
     file_name=f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
@@ -190,12 +183,10 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     print(Opt_off_grid)
     '''
     #file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
-    file_name =f'Result\Hourly supply period\Renewableninja\off_grid results_{year}.csv'
+    file_name =f'Result\\Hourly supply period\\Update RE\\off_grid results_{year}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
-
-    #Opt_off_grid = off_grid_result
 
 
     if grid == 1:
@@ -498,6 +489,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     '''Indicators'''
     #Grid interaction cost
     m.con_cost=Constraint(expr=m.grid_electricity_cost==sum(-m.grid_pout[i]*(m.price[i]+0.01)-(m.grid_pin[i]*(m.price[i])) for i in m.time_periods))
+
     #0.034 means the integration cost of equipment which can help newly installed renewable energy reliable
     #0.01 is TUOS
 
@@ -511,7 +503,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     m.con_Mean_CO2= Constraint(m.time_periods, rule=constraint_rule_Mean_CO2)
 
     #Carbon Emission Requirement
-    m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
+    #m.con_carbon_emission=Constraint(expr=sum(-1*m.grid_pout[i]*(1-0.188)-m.grid_pin[i] for i in m.time_periods)<=0)
     #m.con_carbon_emission=Constraint(expr=sum(m.MEF_CO2[i] for i in m.time_periods)<=0)
 
 
@@ -666,19 +658,19 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
 
         ''' location-based carbon emission calculation method:  (kg CO2e/kWh)'''
         if location == 'QLD1':
-            EI_location_based_method = -sum(df['grid_interaction'] * (0.73)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.71)) / production_amount
         if location == 'NSW1':
-            EI_location_based_method = -sum(df['grid_interaction'] * (0.68)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.66)) / production_amount
         if location == 'TAS1':
-            EI_location_based_method = -sum(df['grid_interaction'] * (0.12)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.15)) / production_amount
         if location == 'VIC1':
-            EI_location_based_method = -sum(df['grid_interaction'] * (0.79)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.77)) / production_amount
         if location == 'SA1':
-            EI_location_based_method = -sum(df['grid_interaction'] * (0.25)) / production_amount
+            EI_location_based_method = -sum(df['grid_interaction'] * (0.23)) / production_amount
 
         ''' Market-based carbon emission calculation method:  (kg CO2e/kWh)'''
-        market_based_emission = (-1 * purchase_amount * (1 - 0.188) - (sell_amount)) * 0.81 / production_amount
-        LGCs = (-1 * purchase_amount * (1 - 0.188) - (sell_amount)) / 1000
+        market_based_emission = (-1 * purchase_amount * (1 - 0.1872) - (sell_amount)) * 0.81 / production_amount
+        LGCs = (-1 * purchase_amount * (1 - 0.1872) - (sell_amount)) / 1000
 
         capex = value(m.capex)
         grid_electricity_cost = value(m.grid_electricity_cost)
@@ -753,6 +745,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
 
         # Create a DataFrame
         indicators_df = pd.DataFrame([indicators])
+        indicators_df=Calculation_LCOH(indicators_df)
         return df, indicators_df
     else:
         print("No optimal solution found")

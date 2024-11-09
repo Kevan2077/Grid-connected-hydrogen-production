@@ -102,7 +102,7 @@ SO=0
 Batch_interval=1
 Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
-storage_bound=120    #tonnes
+storage_bound=120   #tonnes
 battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
 Location_code='Cell 2126'
 
@@ -112,9 +112,9 @@ file='Optimization model\\Dataset\\NEM\\NEM.csv'
 grid_point=pd.read_csv(file)
 
 result = pd.DataFrame()
-for y in [2021]:
+for y in [2023]:
     Year=y
-    for i in ['VIC1']:
+    for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -134,10 +134,10 @@ for y in [2021]:
         grid_code = state_value
         print(grid_code)
         Grid=1
-        SO=0
+        SO=1
         Opt=1
         Hydrogen_storage_type = 'All'
-        for i in [0]:
+        for i in [1,24,720,8760,0]:
             Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
@@ -148,8 +148,9 @@ for y in [2021]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            #operation_result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year} {location_value}.csv')
-#result.to_csv(f'D:\Do it\Phd\OneDrive - Australian National University\Desktop\PhD\Pycharm Project\Grid-connected-hydrogen-production\Result\Hourly supply period\Renewableninja\off_grid {Year}.csv')
+            #operation_result.to_csv(f'D:\\Do it\\Phd\\OneDrive - Australian National University\\Desktop\\PhD\\Pycharm Project\\Grid-connected-hydrogen-production\\Result\\Hourly supply period\\Renewableninja\\off_grid energy flow tracking\\off_grid {Year} {location_value}.csv')
+path=os.getcwd()+os.sep+'Result/Hourly supply period/Update RE/on_grid SO_2023.csv'
+result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
 
