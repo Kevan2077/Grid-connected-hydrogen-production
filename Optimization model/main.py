@@ -114,7 +114,7 @@ grid_point=pd.read_csv(file)
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
+    for i in grid_point['Location']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -127,17 +127,18 @@ for y in [2023]:
             location_value='Cell 36'
         else:
             location_value = i
-        print(i)
+
         grid_number = grid_point[grid_point['Location'] == location_value]
         state_value = grid_number['State'].iloc[0]
         Location_code = location_value
         grid_code = state_value
+        print(i)
         print(grid_code)
         Grid=1
         SO=1
         Opt=1
         Hydrogen_storage_type = 'All'
-        for i in [1,24,720,8760,0]:
+        for i in [0]:
             Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
@@ -149,8 +150,8 @@ for y in [2023]:
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
             #operation_result.to_csv(f'D:\\Do it\\Phd\\OneDrive - Australian National University\\Desktop\\PhD\\Pycharm Project\\Grid-connected-hydrogen-production\\Result\\Hourly supply period\\Renewableninja\\off_grid energy flow tracking\\off_grid {Year} {location_value}.csv')
-path=os.getcwd()+os.sep+'Result/Hourly supply period/Update RE/on_grid SO_2023.csv'
-result.to_csv(path)
+            path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/off_grid {Location_code} {year}.csv'
+            result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
 

@@ -148,9 +148,9 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    #m.pv_capacity=Var(domain=NonNegativeReals)
-    #m.wind_capacity=Var(domain=NonNegativeReals)
-    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    m.pv_capacity=Var(domain=NonNegativeReals)
+    m.wind_capacity=Var(domain=NonNegativeReals)
+    m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
 
     bat=0
@@ -192,8 +192,8 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     if grid == 1:
         print("Location code:",location_code)
         print("Grid:",location)
-        print('Capex_limit is open')
-        m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
+        #print('Capex_limit is open')
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
         if opt == 0:
             print('No capacity optimization')
             m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
@@ -528,6 +528,8 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
     solver.options['NonConvex'] = 2
     #solver.options['Tol'] = 1e-5
+    solver.options['timelimit']=600
+    solver.options['Presolve']=2
     results = solver.solve(m)
 
     '''Result printout'''
