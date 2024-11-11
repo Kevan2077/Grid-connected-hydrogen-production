@@ -96,7 +96,7 @@ Year=2021
 Grid=0
 Opt=0      # 0: indicates fixed capacaity; 1: optimized capacity
 Step=60
-Num_interval=0
+Num_interval=0  # 720,1440,2160,2880,4320,8760,0       1440 means two months interval
 Ratio=1
 SO=0
 Batch_interval=1
@@ -114,7 +114,8 @@ grid_point=pd.read_csv(file)
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in grid_point['Location']:
+    #for i in grid_point['Location']:
+    for i in ['VIC1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -132,13 +133,16 @@ for y in [2023]:
         state_value = grid_number['State'].iloc[0]
         Location_code = location_value
         grid_code = state_value
+        #if grid_code == 'NSW1' or grid_code == 'QLD1':
+           # continue
         print(i)
         print(grid_code)
         Grid=1
         SO=1
         Opt=1
-        Hydrogen_storage_type = 'All'
-        for i in [0]:
+        Hydrogen_storage_type = 'Pipeline'
+
+        for i in [720,1440,2160,2880,4320,8760,0]:
             Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
@@ -149,9 +153,10 @@ for y in [2023]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            #operation_result.to_csv(f'D:\\Do it\\Phd\\OneDrive - Australian National University\\Desktop\\PhD\\Pycharm Project\\Grid-connected-hydrogen-production\\Result\\Hourly supply period\\Renewableninja\\off_grid energy flow tracking\\off_grid {Year} {location_value}.csv')
-            path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/off_grid {Location_code} {year}.csv'
-            result.to_csv(path)
+            path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
+            operation_result.to_csv(path)
+path=os.getcwd()+os.sep+f'Month.csv'
+result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
 

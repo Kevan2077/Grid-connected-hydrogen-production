@@ -78,9 +78,25 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     print('Batch interval:', batch_interval)
 
     # Set the time period of each calendar month
-    supply_periods = [0, 24 * 31, 24 * 28, 24 * 31, 24 * 30, 24 * 31, 24 * 30, 24 * 31, 24 * 31, 24 * 30, 24 * 31,
+    supply_periods = [24 * 31, 24 * 28, 24 * 31, 24 * 30, 24 * 31, 24 * 30, 24 * 31, 24 * 31, 24 * 30, 24 * 31,
                       24 * 30, 24 * 31]
-    cumulative_supply = np.cumsum(supply_periods) #obtain the time point of last hour in each calendar month
+    calendar_month=[]
+    if num_interval==720:
+        calendar_month = [sum(supply_periods[i:i + 1]) for i in range(0, len(supply_periods), 1)]
+    if num_interval == 1440:
+        calendar_month = [sum(supply_periods[i:i + 2]) for i in range(0, len(supply_periods), 2)]
+    if num_interval == 2160:
+        calendar_month = [sum(supply_periods[i:i + 3]) for i in range(0, len(supply_periods), 3)]
+    if num_interval == 2880:
+        calendar_month = [sum(supply_periods[i:i + 4]) for i in range(0, len(supply_periods), 4)]
+    if num_interval == 4320:
+        calendar_month = [sum(supply_periods[i:i + 6]) for i in range(0, len(supply_periods), 6)]
+
+    # Calculate cumulative sum
+    cumulative_supply = np.cumsum(calendar_month)
+    cumulative_supply = np.insert(cumulative_supply, 0, 0)
+    print('Calendar month hours interval', cumulative_supply)
+    #cumulative_supply = np.cumsum(supply_periods) #obtain the time point of last hour in each calendar month
 
     '''initial value of cost, unit: USD'''
 
@@ -148,9 +164,9 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    m.pv_capacity=Var(domain=NonNegativeReals)
-    m.wind_capacity=Var(domain=NonNegativeReals)
-    m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    #m.pv_capacity=Var(domain=NonNegativeReals)
+    #m.wind_capacity=Var(domain=NonNegativeReals)
+    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
 
     bat=0
@@ -183,7 +199,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     print(Opt_off_grid)
     '''
     #file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
-    file_name =f'Result\\Hourly supply period\\Update RE\\off_grid results_{year}.csv'
+    file_name =f'Result\\Hourly supply period\\NEM results\\off_grid {year}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
@@ -192,8 +208,8 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     if grid == 1:
         print("Location code:",location_code)
         print("Grid:",location)
-        #print('Capex_limit is open')
-        #m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
+        print('Capex_limit is open')
+        m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
         if opt == 0:
             print('No capacity optimization')
             m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
@@ -347,7 +363,7 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
             print("Simultaneity_obligation is off")
         else:
             print("Simultaneity_obligation is on")
-            if num_interval==720:       #Monthly Simultaneity Obligation (Calendar Month)
+            if num_interval==720 or num_interval==1440 or num_interval==2160 or num_interval == 2880 or num_interval == 4320:       #Monthly Simultaneity Obligation (Calendar Month)
                 def simultaneity_rule(m, i):
                     return sum(m.grid_pin[t] + m.grid_pout[t] for t in m.time_periods if (t >= cumulative_supply[i]) and (t < cumulative_supply[i+1])) >= 0
                 m.simultaneity_constraint = Constraint(range(len(cumulative_supply)-1),rule=simultaneity_rule)
