@@ -111,11 +111,12 @@ Location_code='Cell 2126'
 file='Optimization model\\Dataset\\NEM\\NEM.csv'
 grid_point=pd.read_csv(file)
 
-result = pd.DataFrame()
+
 for y in [2023]:
     Year=y
-    #for i in grid_point['Location']:
-    for i in ['VIC1']:
+    for i in grid_point['Location']:
+        result = pd.DataFrame() #generate the new DataFrame to save the results
+
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -140,9 +141,9 @@ for y in [2023]:
         Grid=1
         SO=1
         Opt=1
-        Hydrogen_storage_type = 'Pipeline'
+        Hydrogen_storage_type = 'All'
 
-        for i in [720,1440,2160,2880,4320,8760,0]:
+        for i in [1,24,720,1440,2160,2880,4320,8760,0]:
             Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
@@ -153,10 +154,10 @@ for y in [2023]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
-            operation_result.to_csv(path)
-path=os.getcwd()+os.sep+f'Month.csv'
-result.to_csv(path)
+            #path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
+            #operation_result.to_csv(path)
+        path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/on_grid SO {Location_code} {Year}.csv'
+        result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
 
