@@ -164,9 +164,9 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
         m.maximum_power_integration=Param(initialize=0)
 
     #Variable capacity
-    #m.pv_capacity=Var(domain=NonNegativeReals)
-    #m.wind_capacity=Var(domain=NonNegativeReals)
-    #m.electrolyser_capacity=Var(domain=NonNegativeReals)
+    m.pv_capacity=Var(domain=NonNegativeReals)
+    m.wind_capacity=Var(domain=NonNegativeReals)
+    m.electrolyser_capacity=Var(domain=NonNegativeReals)
 
 
     bat=0
@@ -190,26 +190,18 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
 
     #Fixed capacity
     #input the off-grid optimized results:
-    '''
-    file_name=f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
-    file_path = r'{}'.format(os.path.abspath(file_name))
-    off_grid_result = pd.read_csv(file_path, index_col=0)
 
-    Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
-    print(Opt_off_grid)
-    '''
-    #file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
     file_name =f'Result\\Hourly supply period\\NEM results\\off_grid {year}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
-    Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
+    Opt_off_grid = off_grid_result[off_grid_result['Location'] == location_code].reset_index(drop=True)
 
 
     if grid == 1:
         print("Location code:",location_code)
         print("Grid:",location)
         print('Capex_limit is open')
-        m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
+        #m.capex_limit = Constraint(expr=m.capex <= Opt_off_grid.loc[0, 'Capex'])
         if opt == 0:
             print('No capacity optimization')
             m.pv_capacity = Param(initialize=Opt_off_grid.loc[0, 'pv_capacity'] * ratio)
@@ -222,15 +214,16 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
                                   'var3': Opt_off_grid.loc[0, 'electrolyser_capacity'],
                 'var4':Opt_off_grid.loc[0, 'hydrogen_storage_capacity']}
         # Initialize Pyomo variables with presolved values
-            m.pv_capacity = Var(initialize=presolved_solution['var1'],domain=NonNegativeReals)
-            m.wind_capacity = Var(initialize=presolved_solution['var2'],domain=NonNegativeReals)
-            m.electrolyser_capacity = Var(initialize=presolved_solution['var3'],domain=NonNegativeReals)
-            #m.h2_storage_capacity=Var(initialize=presolved_solution['var4'],domain=NonNegativeReals)
+            m.pv_capacity = Var(domain=NonNegativeReals)
+            m.wind_capacity = Var(domain=NonNegativeReals)
+            m.electrolyser_capacity = Var(domain=NonNegativeReals)
+            #m.h2_storage_capacity=Var(domain=NonNegativeReals)
 
+            m.pv_capacity.value=presolved_solution['var1']
+            m.wind_capacity.value=presolved_solution['var2']
+            m.electrolyser_capacity.value=presolved_solution['var3']
+            m.h2_storage_capacity.value=presolved_solution['var4']
 
-
-    print(f'State: {location}')
-    print(f'Location_code: {location_code}')
     '''Flow variables'''
 
     #PV and wind node:
@@ -544,9 +537,11 @@ def optimiser(year, location,location_code, grid, opt, step, num_interval,ratio,
     solver = SolverFactory('gurobi')              #'Cplex', 'ipopt'
     solver.options['NonConvex'] = 2
     #solver.options['Tol'] = 1e-5
-    solver.options['timelimit']=600
-    solver.options['Presolve']=2
+    #solver.options['mip_gap']=1e-4
+    #solver.options['Presolve']=2
     results = solver.solve(m)
+
+
 
     '''Result printout'''
     if results.solver.termination_condition == TerminationCondition.optimal:
