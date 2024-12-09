@@ -59,16 +59,19 @@ def main(Year,
             if key_indicators is None:
                 print(f'Under the hydrogen storage type {Hydrogen_storage_type}')
                 print('No optimal solution found')
-        min_index = df['LCOH'].idxmin()
-        # Drop the row with the minimum value in 'LCOH' column
-        df.drop(df.index.difference([min_index]), inplace=True)
-        if df is None:
-            print('No optimal solution found')
-            return None, None
-        elif (df['hydrogen_storage_type'] == 'Pipeline').any():
-            return df, opt1
-        else:
-            return df, opt2
+        if df is None or df.empty:
+            print('No optimal solution found under two types of hydrogen storage equipments')
+            print(f'temporal correlation {Num_interval} is not feasible, assume the off-grid')
+            return None,None
+
+        else: #no solution under hourly temporal correlation
+            min_index = df['LCOH'].idxmin()
+            # Drop the row with the minimum value in 'LCOH' column
+            df.drop(df.index.difference([min_index]), inplace=True)
+            if (df['hydrogen_storage_type'] == 'Pipeline').any():
+                return df, opt1
+            else:
+                return df, opt2
 
     else:
         Hydrogen_storage_type = storage_type
@@ -96,7 +99,7 @@ Year=2021
 Grid=0
 Opt=0      # 0: indicates fixed capacaity; 1: optimized capacity
 Step=60
-Num_interval=0
+Num_interval=0  # 720,1440,2160,2880,4320,8760,0       1440 means two months interval
 Ratio=1
 SO=0
 Batch_interval=1
@@ -110,11 +113,10 @@ Location_code='Cell 2126'
 '''Read location code information'''
 file='Optimization model\\Dataset\\NEM\\NEM.csv'
 grid_point=pd.read_csv(file)
-
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in ['QLD1','SA1','TAS1','NSW1','VIC1']:
+    for i in grid_point['Location']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -127,17 +129,20 @@ for y in [2023]:
             location_value='Cell 36'
         else:
             location_value = i
-        print(i)
+
         grid_number = grid_point[grid_point['Location'] == location_value]
         state_value = grid_number['State'].iloc[0]
         Location_code = location_value
         grid_code = state_value
+
+        print(i)
         print(grid_code)
-        Grid=1
-        SO=1
+        Grid=0
+        SO=0
         Opt=1
-        Hydrogen_storage_type = 'All'
-        for i in [1,24,720,8760,0]:
+        Hydrogen_storage_type = 'Lined Rock'
+
+        for i in [0]:
             Num_interval=i
             key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
@@ -148,8 +153,9 @@ for y in [2023]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            #operation_result.to_csv(f'D:\\Do it\\Phd\\OneDrive - Australian National University\\Desktop\\PhD\\Pycharm Project\\Grid-connected-hydrogen-production\\Result\\Hourly supply period\\Renewableninja\\off_grid energy flow tracking\\off_grid {Year} {location_value}.csv')
-path=os.getcwd()+os.sep+'Result/Hourly supply period/Update RE/on_grid SO_2023.csv'
+            #path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
+            #operation_result.to_csv(path)
+path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
 result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
