@@ -1,9 +1,5 @@
 import numpy as np
 import pandas as pd
-
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 import os, json
 
 def Interp(start, end, step):
@@ -40,7 +36,7 @@ def divide(df,step):
     return new_data
 
 def Mean_carbon_intensity(year, location,step):
-    file_name='Optimization model\\Dataset\\NEMED data\\Mean carbon intensity'
+    file_name='Optimization model/Dataset/NEMED data/Mean carbon intensity'
     file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
     result = pd.read_csv(file_path, index_col=0)
@@ -81,7 +77,7 @@ def Mean_carbon_intensity(year, location,step):
 
 def carbon_intensity(year, location,step):
 
-    file_name='Optimization model\\Dataset\\NEMED data\\Carbon intensity'
+    file_name='Optimization model/Dataset/NEMED data/Carbon intensity'
     file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
     file_path = os.path.join(file_path, file_name)
@@ -123,7 +119,7 @@ def carbon_intensity(year, location,step):
     return Carbon_Intensity
 
 def Spotprice(year, location,step):
-    file_name='Optimization model\\Dataset\\NEMED data\\Price'
+    file_name='Optimization model/Dataset/NEMED data/Price'
     file_path = r'{}'.format(os.path.abspath(file_name))
     file_name = f'{year}.csv'
     file_path = os.path.join(file_path, file_name)

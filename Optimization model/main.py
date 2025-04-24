@@ -8,7 +8,7 @@ import numpy as np
 
 from Functions.Data import *
 import os
-import seaborn as sns
+
 from Functions.Data import *
 from Optimisation import *
 #pd.set_option('display.max_columns', None)
@@ -111,12 +111,11 @@ Location_code='Cell 2126'
 
 
 '''Read location code information'''
-file='Optimization model\\Dataset\\NEM\\NEM.csv'
-grid_point=pd.read_csv(file)
+
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in grid_point['Location']:
+    for i in ['QLD1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':
@@ -130,10 +129,8 @@ for y in [2023]:
         else:
             location_value = i
 
-        grid_number = grid_point[grid_point['Location'] == location_value]
-        state_value = grid_number['State'].iloc[0]
         Location_code = location_value
-        grid_code = state_value
+        grid_code = i
 
         print(i)
         print(grid_code)
@@ -153,11 +150,7 @@ for y in [2023]:
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
             print(result)
-            #path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
-            #operation_result.to_csv(path)
-path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
-result.to_csv(path)
-#operation_result.to_csv('test_operation.csv')
+
 
 
 

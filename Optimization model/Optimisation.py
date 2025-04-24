@@ -11,7 +11,6 @@ import os
 import sys
 import pickle
 
-import seaborn as sns
 
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
@@ -22,7 +21,7 @@ warnings.filterwarnings("ignore")
 def optimiser(year, location, location_code, grid, opt, step, num_interval, ratio, SO, batch_interval,
               comp2_conversion, hydrogen_storage_type, hydrogen_load_flow, hydrogen_storage_bound, c_bat_class):
     # data import
-    file_name = 'Optimization model\\Dataset\\' + 'Dataframe ' + str(location) + '.csv'
+    file_name = 'Optimization model/Dataset/' + 'Dataframe ' + str(location) + '.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     source_df = pd.read_csv(file_path, index_col=0)
 
@@ -33,7 +32,7 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
 
     '''AEF'''
     # data['Mean Carbon intensity']=Mean_carbon_intensity(year,location,step)['Intensity_Index']
-    path = f'Optimization model\\Dataset\\NEMED data\\Mean carbon intensity\\{year} AEF\\{location[:-1]} final.csv'
+    path = f'Optimization model/Dataset/NEMED data/Mean carbon intensity/{year} AEF/{location[:-1]} final.csv'
     AEF = pd.read_csv(path, index_col=0)
     AEF['AEF'] = AEF['Sum_Emissions'] / (AEF['Total_Energy'] + 0.53 * AEF['Rooftop_PV'])
     '''
@@ -46,8 +45,8 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     data['Wind']=new_wind
     '''
     '''Obtain renewable energy generation'''
-    pv_path = f'Optimization model\\Dataset\\Renewable generation\\{location_code}_{year}_PV.csv'
-    wind_path = f'Optimization model\\Dataset\\Renewable generation\\{location_code}_{year}_wind.csv'
+    pv_path = f'Optimization model/Dataset/Renewable generation/{location_code}_{year}_PV.csv'
+    wind_path = f'Optimization model/Dataset/Renewable generation/{location_code}_{year}_wind.csv'
 
     pv_ref = pd.read_csv(pv_path, index_col=0)
     wind_ref = pd.read_csv(wind_path, index_col=0)
@@ -197,11 +196,11 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     print(Opt_off_grid)
     '''
     # file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
-    file_name = f'Result\\Hourly supply period\\NEM results\\off_grid {year}.csv'
-    file_path = r'{}'.format(os.path.abspath(file_name))
-    off_grid_result = pd.read_csv(file_path, index_col=0)
-    Opt_off_grid = off_grid_result[off_grid_result['Location_code'] == location_code].reset_index(drop=True)
-    print(Opt_off_grid)
+    #file_name = f'Result\\Hourly supply period\\NEM results\\off_grid {year}.csv'
+    #file_path = r'{}'.format(os.path.abspath(file_name))
+    #off_grid_result = pd.read_csv(file_path, index_col=0)
+    #Opt_off_grid = off_grid_result[off_grid_result['Location_code'] == location_code].reset_index(drop=True)
+    #print(Opt_off_grid)
 
     if grid == 1:
         print("Location code:", location_code)
@@ -578,40 +577,10 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')  # 'Cplex', 'ipopt'
-    solver.options['NonConvex'] = 2
-    solver.options['Presolve'] = 2
 
-    '''load the off-grid solution'''
-    save_path = f'Result\\Hourly supply period\\NEM results\\off_grid\\off_grid_solution {location_code} {year}.pkl'
-    if os.path.exists(save_path):
-        print(f"Off-grid solution for {location_code} {year} exists!")
-        with open(save_path, 'rb') as f:
-            loaded_solution = pickle.load(f)
-        # Assign the values to the model's variables
-        for var in m.component_objects(Var, active=True):
-            var_name = var.name  # Use the variable's name to find the saved values
-            if var_name in loaded_solution:
-                for index in var:
-                    if index in loaded_solution[var_name]:
-                        var[index].value = loaded_solution[var_name][index]
-    else:
-        print(f"Off-grid solution for {location_code} {year} not exist.")
 
-    results = solver.solve(m, warmstart=True)
+    results = solver.solve(m)
 
-    solution_values = {}
-    for var in m.component_objects(Var, active=True):
-        var_name = var.name  # Use the variable's name as the key
-        solution_values[var_name] = {}  # Store values for each variable
-        for index in var:
-            solution_values[var_name][index] = var[index].value
-
-    save_path = f'Result\\Hourly supply period\\NEM results\\off_grid\\off_grid_solution {location_code} {year}.pkl'
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-    # Save the solution to the specified path
-    with open(save_path, 'wb') as f:
-        pickle.dump(solution_values, f)
 
     '''Result printout'''
     if results.solver.termination_condition == TerminationCondition.optimal:
