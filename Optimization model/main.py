@@ -154,8 +154,8 @@ for y in [2023]:
             print(result)
             #path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
             #operation_result.to_csv(path)
-path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
-result.to_csv(path)
+#path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
+#result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
 
 

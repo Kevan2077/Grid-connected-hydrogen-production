@@ -578,8 +578,8 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     m.obj = Objective(expr=m.LCOH, sense=minimize)
     # Solve the linear programming problem
     solver = SolverFactory('gurobi')  # 'Cplex', 'ipopt'
-    solver.options['NonConvex'] = 2
-    solver.options['Presolve'] = 2
+    #solver.options['NonConvex'] = 2
+    #solver.options['Presolve'] = 2
 
     '''load the off-grid solution'''
     save_path = f'Result\\Hourly supply period\\NEM results\\off_grid\\off_grid_solution {location_code} {year}.pkl'
