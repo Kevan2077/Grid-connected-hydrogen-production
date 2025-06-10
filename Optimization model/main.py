@@ -8,9 +8,8 @@ import numpy as np
 
 from Functions.Data import *
 import os
-from Functions.Data import *
-from Optimisation import *
-#pd.set_option('display.max_columns', None)
+from FullyGrid import *
+pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
 def main(Year,
@@ -102,7 +101,7 @@ Num_interval=0  # 720,1440,2160,2880,4320,8760,0       1440 means two months int
 Ratio=1
 SO=0
 Batch_interval=1
-Hydrogen_storage_type='Lined Rock'              ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
+Hydrogen_storage_type='All'     ##'Pipeline', 'Lined Rock', 'All' (All means choose the one between two options with minimum LCOH)
 load=180
 storage_bound=120   #tonnes
 battery_class='AA'              #["AAA", "AA", "A", "B", "C", "D", "E",'SAM_2020','SAM_2030','SAM_2050']
@@ -110,40 +109,31 @@ Location_code='Cell 2126'
 
 
 '''Read location code information'''
-file='Optimization model\\Dataset\\NEM\\NEM.csv'
-grid_point=pd.read_csv(file)
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in ['QLD1']:
-        if i=='QLD1':
+    for grid in ['TAS1','SA1','NSW1','VIC1']:
+        if grid=='QLD1':
             location_value='Cell 1375'
-        elif i == 'SA1':
+        elif grid == 'SA1':
             location_value='Cell 266'
-        elif i =='TAS1':
+        elif grid =='TAS1':
             location_value='Cell 20'
-        elif i =='NSW1':
+        elif grid =='NSW1':
             location_value='Cell 2127'
-        elif i =='VIC1':
+        elif grid =='VIC1':
             location_value='Cell 36'
         else:
-            location_value = i
+            location_value = grid
 
-        grid_number = grid_point[grid_point['Location'] == location_value]
-        state_value = grid_number['State'].iloc[0]
-        Location_code = location_value
-        grid_code = state_value
-
-        print(i)
-        print(grid_code)
-        Grid=0
+        Grid=1
         SO=0
         Opt=1
-        Hydrogen_storage_type = 'Lined Rock'
+        Hydrogen_storage_type = 'All'
 
         for i in [0]:
             Num_interval=i
-            key_indicators,operation_result=main(Year=Year,Location=grid_code,Location_code=Location_code,Grid=Grid,Opt=Opt,Step=Step,
+            key_indicators,operation_result=main(Year=Year,Location=grid,Location_code=location_value,Grid=Grid,Opt=Opt,Step=Step,
                                                          Num_interval=Num_interval,Ratio=Ratio,
                                                          SO=SO,Batch_interval=Batch_interval,
                                                          storage_type=Hydrogen_storage_type,
@@ -151,9 +141,8 @@ for y in [2023]:
                                                          Hydrogen_storage_bound=storage_bound,
                                                          bat_class=battery_class)
             result = pd.concat([result, key_indicators], ignore_index=True)
-            print(result)
-            #path = os.getcwd() + os.sep + f'Month {Num_interval}.csv'
-            #operation_result.to_csv(path)
+            path = os.getcwd() + os.sep + f'Result/on_grid/operation track/fully_grid_{grid}.csv'
+            operation_result.to_csv(path)
 #path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
 #result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')

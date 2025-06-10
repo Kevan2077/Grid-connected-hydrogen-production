@@ -9,7 +9,7 @@ import numpy as np
 from Functions.Data import *
 import os
 import sys
-
+import pickle
 
 
 pd.set_option('display.max_columns', None)
@@ -271,8 +271,11 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
 
     def constraint_rule_wind(m, i):
         return m.wind_pout[i] == -1 * m.wind_capacity / m.wind_ref_size * m.wind_ref_generation[i]
-
     m.con_wind = Constraint(m.time_periods, rule=constraint_rule_wind)
+
+    """wind and solar capacity constraints"""
+    m.capacity_wind_con = Constraint(expr=m.wind_capacity == 0)
+    m.capacity_pv_con = Constraint(expr=m.pv_capacity == 0)
 
     '''Electricity connection point'''
 
