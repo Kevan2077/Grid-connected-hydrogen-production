@@ -11,7 +11,6 @@ import os
 import sys
 import pickle
 
-import seaborn as sns
 
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
@@ -195,14 +194,14 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
 
     Opt_off_grid = off_grid_result[off_grid_result['Location'] == location].reset_index(drop=True)
     print(Opt_off_grid)
-    '''
+
     # file_name = f'Result\Hourly supply period\grid node calculation\{location_code}.csv'
     file_name = f'Result\\Hourly supply period\\NEM results\\off_grid {year}.csv'
     file_path = r'{}'.format(os.path.abspath(file_name))
     off_grid_result = pd.read_csv(file_path, index_col=0)
     Opt_off_grid = off_grid_result[off_grid_result['Location_code'] == location_code].reset_index(drop=True)
     print(Opt_off_grid)
-
+    '''
     if grid == 1:
         print("Location code:", location_code)
         print("Grid:", location)
@@ -474,7 +473,6 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     m.con_hydrogen_storage = Constraint(expr=m.h2_storage_level[end_index] == m.initial_h2_storage_value)
 
     '''Battery node'''
-
     # Output to battery
     def constraint_rule_CP_battery(m, i):
         return m.bat_pin[i] + m.bat_pout[i] + m.CP_bat[i] == 0  # charge and discharge efficiency is 90%
@@ -589,13 +587,6 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
         solution_values[var_name] = {}  # Store values for each variable
         for index in var:
             solution_values[var_name][index] = var[index].value
-
-    save_path = f'Result\\Hourly supply period\\NEM results\\off_grid\\off_grid_solution {location_code} {year}.pkl'
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-    # Save the solution to the specified path
-    with open(save_path, 'wb') as f:
-        pickle.dump(solution_values, f)
 
     '''Result printout'''
     if results.solver.termination_condition == TerminationCondition.optimal:

@@ -115,7 +115,7 @@ grid_point=pd.read_csv(file)
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for i in grid_point['Location']:
+    for i in ['QLD1']:
         if i=='QLD1':
             location_value='Cell 1375'
         elif i == 'SA1':

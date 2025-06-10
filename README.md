@@ -15,16 +15,6 @@ You can clone the project directly and then create venv and install dependencies
   pip install -r requirements.txt
 ```
 
-<script>
-  function copyToClipboard() {
-    var copyText = document.getElementById("copyText");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999); // For mobile devices
-    document.execCommand("copy");
-    alert("Copied the text: " + copyText.value);
-  }
-</script>
-
 ## Solver
 
 The linear model is built using pyomo so any solvers which are compatile with pyomo could be used, such as
