@@ -6,6 +6,8 @@ This repo records how to build the grid-connected hydrogen production opyimizati
 
 It is also used for saving all the codes that are used to get the analyzed results of paper:
 "Assessing emission certification schemes for grid-connected hydrogen in Australia" in arXiv.
+DOI: https://doi.org/10.48550/arXiv.2503.21148
+
 
 ## Installation
 
