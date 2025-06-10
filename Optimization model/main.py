@@ -8,7 +8,8 @@ import numpy as np
 
 from Functions.Data import *
 import os
-from FullyGrid import *
+#from FullyGrid import *
+from Optimisation import *
 pd.set_option('display.max_columns', None)
 warnings.filterwarnings("ignore")
 
@@ -112,7 +113,7 @@ Location_code='Cell 2126'
 result = pd.DataFrame()
 for y in [2023]:
     Year=y
-    for grid in ['TAS1','SA1','NSW1','VIC1']:
+    for grid in ['QLD1','TAS1','SA1','NSW1','VIC1']:
         if grid=='QLD1':
             location_value='Cell 1375'
         elif grid == 'SA1':
@@ -125,24 +126,21 @@ for y in [2023]:
             location_value='Cell 36'
         else:
             location_value = grid
-
         Grid=1
         SO=0
         Opt=1
         Hydrogen_storage_type = 'All'
 
-        for i in [0]:
-            Num_interval=i
-            key_indicators,operation_result=main(Year=Year,Location=grid,Location_code=location_value,Grid=Grid,Opt=Opt,Step=Step,
-                                                         Num_interval=Num_interval,Ratio=Ratio,
-                                                         SO=SO,Batch_interval=Batch_interval,
-                                                         storage_type=Hydrogen_storage_type,
-                                                         Hydrogen_load_flow=load,
-                                                         Hydrogen_storage_bound=storage_bound,
-                                                         bat_class=battery_class)
-            result = pd.concat([result, key_indicators], ignore_index=True)
-            path = os.getcwd() + os.sep + f'Result/on_grid/operation track/fully_grid_{grid}.csv'
-            operation_result.to_csv(path)
+        key_indicators,operation_result=main(Year=Year,Location=grid,Location_code=location_value,Grid=Grid,Opt=Opt,Step=Step,
+                                                     Num_interval=Num_interval,Ratio=Ratio,
+                                                     SO=SO,Batch_interval=Batch_interval,
+                                                     storage_type=Hydrogen_storage_type,
+                                                     Hydrogen_load_flow=load,
+                                                     Hydrogen_storage_bound=storage_bound,
+                                                     bat_class=battery_class)
+        result = pd.concat([result, key_indicators], ignore_index=True)
+        path = os.getcwd() + os.sep + f'Result/on_grid/operation track/flexible_{grid}.csv'
+        operation_result.to_csv(path)
 #path=os.getcwd()+os.sep+f'Result/Hourly supply period/NEM results/grid_SO 2023/off_grid 2023.csv'
 #result.to_csv(path)
 #operation_result.to_csv('test_operation.csv')
