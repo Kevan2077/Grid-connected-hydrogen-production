@@ -1,3 +1,4 @@
+/Result/
 # Ignore Python cache
 __pycache__/
 *.pyc
@@ -7,13 +8,13 @@ __pycache__/
 # Ignore the cache
 
 # Ignore virtual environments
-venv/
-.env/
+/venv/
+/.env/
 
 # Ignore system files
 .DS_Store
 Thumbs.db
 
-Result/
+
 
 
