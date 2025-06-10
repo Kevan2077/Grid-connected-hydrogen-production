@@ -3,11 +3,8 @@ import pandas as pd
 import calendar
 import warnings
 
-
-
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_columns', None)
-
 
 def Cost_hs(size,storage_type):
     if size > 0:

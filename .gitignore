@@ -15,8 +15,7 @@ venv/
 .DS_Store
 Thumbs.db
 
-
-
-
-/Result/
+# Ignore the on grid and previous results
+/Result/on_grid/
+/Result/previous/
 /Resultprocessing/
