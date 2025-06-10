@@ -581,23 +581,7 @@ def optimiser(year, location, location_code, grid, opt, step, num_interval, rati
     #solver.options['NonConvex'] = 2
     #solver.options['Presolve'] = 2
 
-    '''load the off-grid solution'''
-    save_path = f'Result\\Hourly supply period\\NEM results\\off_grid\\off_grid_solution {location_code} {year}.pkl'
-    if os.path.exists(save_path):
-        print(f"Off-grid solution for {location_code} {year} exists!")
-        with open(save_path, 'rb') as f:
-            loaded_solution = pickle.load(f)
-        # Assign the values to the model's variables
-        for var in m.component_objects(Var, active=True):
-            var_name = var.name  # Use the variable's name to find the saved values
-            if var_name in loaded_solution:
-                for index in var:
-                    if index in loaded_solution[var_name]:
-                        var[index].value = loaded_solution[var_name][index]
-    else:
-        print(f"Off-grid solution for {location_code} {year} not exist.")
-
-    results = solver.solve(m, warmstart=True)
+    results = solver.solve(m)
 
     solution_values = {}
     for var in m.component_objects(Var, active=True):
